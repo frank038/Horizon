@@ -1,0 +1,44 @@
+/* space between items */
+gridview > child {
+  margin: 2px;
+}
+
+/*
+#renamedialog {
+  border: 1px solid black;
+  border-radius: 8px;
+  padding: 4px;
+}
+*/
+
+/*
+#copydialog {
+  border: 1px solid black;
+  border-radius: 8px;
+  padding: 4px;
+}
+*/
+
+/*
+#propertydialog {
+}
+*/
+
+/*
+#simpledialog {
+  border: 1px solid black;
+  border-radius: 8px;
+  padding: 4px;
+}
+*/
+
+/*
+#separator1 {
+  background-color: yellow;
+}
+*/
+
+/*
+#settingdialog {
+}
+*/

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.1
+Type=Application
+Name=Horizon
+Comment=File Manager
+Icon=/usr/share/HorizonFM4/icons/icon_horizon.svg
+Exec=/usr/bin/horizonfm4_installed.sh
+MimeType=inode/directory;
+Categories=Utility;
+Keywords=Manager;File;
