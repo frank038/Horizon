@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8"
+VERSION = "0.8.1"
 FMNAME = "Horizon alpha"
 
 import sys,os
@@ -2371,8 +2371,18 @@ class MainWindow(Gtk.ApplicationWindow):
         n_pages = self._notebook.get_n_pages()
         for i in reversed(range(n_pages)):
             _sw = self._notebook.get_nth_page(i)
-            if _sw._path == _mount.get_default_location().get_path():
-                self._notebook.remove_page(i)
+            try:
+                if _sw._path.startswith(_mount.get_default_location().get_path()):
+                    self._notebook.remove_page(i)
+            except:
+                pass
+        n_pages = self._notebook.get_n_pages()
+        if n_pages == 0:
+            sw = ScrolWin(_HOME, self)
+            sw.grid1.grab_focus()
+            if sw != None:
+                self._notebook.append_page(sw, sw.tab_label)
+                self._notebook.set_tab_reorderable(sw, True)
         #
         AlDial(self_main, "{}: {}".format(_lang.MOUNTUNMOUNTED, m_name))
     
