@@ -20,3 +20,5 @@ Features:
 - has a graphical setting application for all the supported options
 - modern visual thanks to the Gtk4 toolkit.
 
+
+![My image](https://github.com/frank038/Horizon/blob/main/screenshot.png)
