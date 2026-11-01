@@ -1,4 +1,7 @@
 _LANG="English"
+LHOME="Home"
+LBOOKMARKS="Bookmarks"
+LDEVICES="Devices"
 FHOME="Home"
 FOLDERNOTFOUND="Folder not found"
 FILENOTFOUND="File not found"
