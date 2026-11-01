@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.4"
-FMNAME = "Horizon alpha"
+VERSION = "0.8.4 alpha"
+FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
 import sys,os
