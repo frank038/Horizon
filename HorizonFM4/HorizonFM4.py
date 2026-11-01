@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.5 alpha"
+VERSION = "0.8.6 alpha"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -548,7 +548,10 @@ def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_sam
 def copy_file_function(path_source,_dest,_operation,_event,_signal,_object,_same_item):
     there_same_item = 0
     # check whether there is some items with the same name at destination
-    for el in path_source:
+    for el in path_source[:]:
+        if el == "":
+            path_source.remove("")
+            continue
         if os.path.exists(os.path.join(_dest, os.path.basename(el))):
             there_same_item = 1
             break
