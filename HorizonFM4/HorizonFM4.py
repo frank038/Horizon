@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.3"
+VERSION = "0.8.4"
 FMNAME = "Horizon alpha"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -1088,8 +1088,11 @@ class WinPopover(Gtk.PopoverMenu):
         on_choose_app(self._path, _file)
     
     def on_terminal(self, action, param, _path):
-        subprocess.run([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
-        
+        try:
+            subprocess.run([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
+        except Exception as E:
+            AlDial(self_main, str(E))
+    
     def on_script(self, action, param, _script):
         _list = ""
         _path = self._parent._path
@@ -2200,8 +2203,13 @@ class MainWindow(Gtk.ApplicationWindow):
             HOME_DIRS.append(os.path.basename(GLib.get_user_special_dir(el)))
         HOME_DIRS_ICONS = ["folder-desktop", "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
         #
+        self.exp1 = Gtk.Expander.new(label=_lang.LHOME)
+        self.exp1.set_expanded(True)
+        #
         self._lb1 = Gtk.ListBox.new()
-        self.scroll_box.append(self._lb1)
+        # self.scroll_box.append(self._lb1)
+        self.exp1.set_child(self._lb1)
+        self.scroll_box.append(self.exp1)
         self._lb1.connect("row-activated", self.on_row_activated)
         #
         _sep = Gtk.Separator.new(orientation=Gtk.Orientation.HORIZONTAL)
@@ -2232,9 +2240,15 @@ class MainWindow(Gtk.ApplicationWindow):
         self._lb1.append(_boxt)
         
     def lateral_panel_bookmark_populate(self):
+        self.exp2 = Gtk.Expander.new(label=_lang.LBOOKMARKS)
+        self.exp2.set_expanded(True)
+        #
         self._lb2 = Gtk.ListBox.new()
         self._lb2.set_selection_mode(Gtk.SelectionMode.NONE)
-        self.scroll_box.append(self._lb2)
+        # self.scroll_box.append(self._lb2)
+        self.exp2.set_child(self._lb2)
+        self.scroll_box.append(self.exp2)
+        #
         self._lb2.connect("row-activated", self.on_row_activated)
         ##
         _sep = Gtk.Separator.new(orientation=Gtk.Orientation.HORIZONTAL)
@@ -2272,9 +2286,14 @@ class MainWindow(Gtk.ApplicationWindow):
             _gesture_r.connect('pressed', self.on_bk_gesture_r)
     
     def lateral_panel_volume_populate(self):
+        self.exp3 = Gtk.Expander.new(label=_lang.LDEVICES)
+        self.exp3.set_expanded(True)
+        #
         self.volume_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.volume_box.set_halign(Gtk.Align.START)
-        self.scroll_box.append(self.volume_box)
+        # self.scroll_box.append(self.volume_box)
+        self.exp3.set_child(self.volume_box)
+        self.scroll_box.append(self.exp3)
         #
         #############
         self._vm = Gio.VolumeMonitor.get()
@@ -4246,8 +4265,7 @@ class WinSettings(Gtk.Window):
         MEDIA_SKIP = MEDIA_SKIP_TMP.split(";")
         #
         try:
-            # _data_json = config_conf
-            _ff =  open(os.path.join(HOME_CONFIG,"config.json"), "w")
+            _ff =  open(os.path.join(HOME_CONFIG,"configs/config.json"), "w")
             json.dump(config_conf, _ff, indent = 4)
             _ff.close()
         except Exception as E:
