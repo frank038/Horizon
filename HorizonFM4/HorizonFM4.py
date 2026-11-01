@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.4 alpha"
-FMNAME = "Horizon"
+VERSION = "0.8.5"
+FMNAME = "Horizon alpha"
 FMSITE = "https://github.com/frank038/Horizon"
 
 import sys,os
@@ -226,7 +226,7 @@ class CopyDialog(Gtk.Window):
         #
         # self.present()
         
-    def signal_threadslot(self, _signal,_param):
+    def signal_threadslot(self, _signal, _param):
         _list = _signal.propList[0]
         ########## copy operation
         if _list[0] == "COPYD":
@@ -288,10 +288,11 @@ def add_file_sfx(file_name_dst):
         _file_exists = os.path.exists(file_name_dst)
     return file_name_dst
 
-def on_copy_file2(dest_path, ff):
+def on_copy_file2(dest_path, ff, _overwrite):
     global _errors
     try:
-        dest_path = add_file_sfx(dest_path)
+        if _overwrite == 0:
+            dest_path = add_file_sfx(dest_path)
         ret = False
         _f = shutil.copy2(ff, dest_path, follow_symlinks=False)
         if _f == dest_path:
@@ -315,7 +316,7 @@ def on_copy_dir2(dest_path):
         _errors += str(E)+"\n"
         return _errors
     
-def on_walktree(root_path, _path, base_path_src, callback=None):
+def on_walktree(root_path, _path, base_path_src, _overwrite):
     #
     global _errors
     FULL_PATH_SRC = root_path
@@ -339,7 +340,7 @@ def on_walktree(root_path, _path, base_path_src, callback=None):
         if stat.S_ISDIR(mode):
             # It's a directory, recurse into it
             if os.path.exists(pathname):
-                on_walktree(root_path, pathname, base_path_src, callback)
+                on_walktree(root_path, pathname, base_path_src, _overwrite)
         elif stat.S_ISREG(mode):
             # file to copy
             file_src = pathname
@@ -347,7 +348,8 @@ def on_walktree(root_path, _path, base_path_src, callback=None):
             file_dst = pathname[len(BASE_PATH_SRC)+1:]
             dest_path = os.path.join(FULL_PATH_SRC, file_dst)
             #
-            dest_path = add_file_sfx(dest_path)
+            if _overwrite == 0:
+                dest_path = add_file_sfx(dest_path)
             #
             ff = Gio.File.new_for_path(file_src)
             try:
@@ -372,12 +374,13 @@ def on_walktree(root_path, _path, base_path_src, callback=None):
         return _errors
     
 # operation: copy or cut
-def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None):
+def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None, _overwrite=None):
     global _errors
     try:
         mode = os.lstat(ff).st_mode
         if stat.S_ISDIR(mode):
-            _signal.propList = ["PULSE_COPY",os.path.basename(ff)]
+            if _signal:
+                _signal.propList = ["PULSE_COPY",os.path.basename(ff)]
             if not os.path.exists(dest_path):
                 try:
                     shutil.copytree(ff, dest_path)
@@ -398,7 +401,7 @@ def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None):
                         return _errors
                     return 1
                 #
-                ret = on_walktree(os.path.dirname(dest_path), ff, os.path.dirname(ff))
+                ret = on_walktree(os.path.dirname(dest_path), ff, os.path.dirname(ff), _overwrite)
                 if ret != 1:
                     return _errors
                 elif ret == 1:
@@ -410,10 +413,11 @@ def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None):
                         return _errors
                     return 1
         elif stat.S_ISREG(mode):
-            _signal.propList = ["PULSE_COPY",os.path.basename(ff)]
+            if _signal:
+                _signal.propList = ["PULSE_COPY",os.path.basename(ff)]
             # 
             if not os.path.exists(dest_path):
-                ret = on_copy_file2(dest_path, ff)
+                ret = on_copy_file2(dest_path, ff, _overwrite)
                 if ret != 1:
                     _errors += "Error: {}".format(os.path.basename(ff))
                     return _errors
@@ -431,7 +435,7 @@ def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None):
                     if operation == "cut":
                         _errors += "Error {}: same file.".format(os.path.basename(ff)) 
                         return _errors
-                    ret = on_copy_file2(dest_path, ff)
+                    ret = on_copy_file2(dest_path, ff, _overwrite)
                     if ret != 1:
                         _errors += "Error: {}".format(os.path.basename(ff))
                         return _errors
@@ -459,7 +463,7 @@ def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None):
                         _errors += "Error {}: same file.".format(os.path.basename(ff)) 
                         return _errors
                     dest_path = add_link_sfx(dest_path)
-                    ret = on_copy_file2(dest_path, ff)
+                    ret = on_copy_file2(dest_path, ff, _overwrite)
                     if ret != 1:
                         _errors += "Error: {}".format(os.path.basename(ff))
                         return _errors
@@ -477,22 +481,22 @@ def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None):
 import time
 # 
 class CopyThread(Thread):
-    def __init__(self, path_source,_dest,_operation, _signal, _event):
+    def __init__(self, path_source,_dest,_operation, _signal, _event, _overwrite):
         self.path_source = path_source
         self._dest = _dest
         self._operation = _operation
         self._signal = _signal
         self._event = _event
+        self._overwrite = _overwrite
         self.run()
         
     def run(self):
         for ff in self.path_source:
-            # time.sleep(8)
             if self._event.is_set():
                 self._signal.propList = ["COPY_ABORT"]
                 return
             dest_path = os.path.join(self._dest, os.path.basename(ff))
-            on_copy_file(dest_path, ff, self._operation, self._signal)
+            on_copy_file(dest_path, ff, self._operation, self._signal, self._overwrite)
             time.sleep(0.01)
         #
         if _errors != "":
@@ -500,7 +504,7 @@ class CopyThread(Thread):
         else:
             self._signal.propList = ["COPY_DONE"]
         
-def copy_file_function(path_source,_dest,_operation,_event=None,_signal=None,_object=None,_same_item=0):
+def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite):
     if "" in path_source:
         path_source.remove("")
     if "\x00" in path_source:
@@ -534,14 +538,50 @@ def copy_file_function(path_source,_dest,_operation,_event=None,_signal=None,_ob
         _signalc.connect("notify::propList", signal_threadslot_c, num_items)
         _CD = CopyDialog(self_main, _signalc, _event)
         #
-        _object = Thread(target=CopyThread, args=(path_source,_dest,_operation,_signalc,_event), daemon=True)
+        _object = Thread(target=CopyThread, args=(path_source,_dest,_operation,_signalc,_event,_overwrite), daemon=True)
         _object.start()
         #
         _CD.present()
         #
         return _object
 
+def copy_file_function(path_source,_dest,_operation,_event,_signal,_object,_same_item):
+    there_same_item = 0
+    # check whether there is some items with the same name at destination
+    for el in path_source:
+        if os.path.exists(os.path.join(_dest, os.path.basename(el))):
+            there_same_item = 1
+            break
+    _result = None
+    if there_same_item:
+        _OB = OBDial(self_main, _result)
+        def dialog_action(_obj, _res, _data):
+            # 0 yes overwrite - 1 no backup
+            _result = _obj.choose_finish(_res)
+            if _result == 0:
+                copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite=1)
+            elif _result == 1:
+                copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite=0)
+        _OB.choose(self_main, None, dialog_action, _result)
+    else:
+        copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite=0)
+
 ##############
+
+# overwrite/backup dialog
+class OBDial(Gtk.AlertDialog):
+    def __init__(self, _parent, _data):
+        super().__init__()
+        self._parent = _parent
+        self._data = _data
+        self._str1 = _lang.FILEOVERWRITE+"?"
+        self._str2 = _lang.FILEWITHBACKUP
+        #
+        self.set_buttons([_lang.YES, _lang.NO])
+        self.props.cancel_button = 1
+        #
+        self.set_message(self._str1)
+        self.set_detail(self._str2)
 
 def on_app_activated(_w, _appinfo, _ff, _APP):
     _appinfo.launch([_ff], None)
@@ -763,7 +803,7 @@ class ItemBox(Gtk.Box):
         for ff in _source:
             path_source.append(ff.get_path())
         thread_object = object
-        _thread = copy_file_function(path_source,_dest,_operation, None, None, thread_object)
+        _thread = copy_file_function(path_source,_dest,_operation, None, None, thread_object, 0)
         
     def on_drop(self, ctrl, value, _x, _y):
         _operation = ""
@@ -3608,7 +3648,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         for ff in _source:
             path_source.append(ff.get_path())
         thread_object = object
-        _thread = copy_file_function(path_source,_dest,_operation, None, None, thread_object)
+        _thread = copy_file_function(path_source,_dest,_operation, None, None, thread_object, 0)
     
     def on_drop(self, ctrl, value, _x, _y):
         _operation = ""
