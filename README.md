@@ -12,10 +12,10 @@ Requirements:
 Features:
 - recycle bin
 - manages mass storage devices
-- shortcuts
+- bookmarks: drag and drop any folder; right mouse click to remove them
 - custom scripts (the selected items are passed as argument: each item is separated by a newline, and the list terminates with a newline)
 - drag and drop support
-- a separeated language file, very easy to modify
+- a separated language file, very easy to modify or translate into your language
 - can be used in portable mode, or can be installed (after creating a proper package o by using other installation methods): the installation directories are /usr/share for the main folder HorizonFM4, and /usr/bin for the script needed to execute the main program; in the folder FILES_FOR_INSTALLATION are the necessary files
 - very small, uses only the most common python stuff
 - has a graphical setting application for all the supported options
