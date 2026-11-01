@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.6 alpha"
+VERSION = "0.8.7 alpha"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -160,6 +160,7 @@ MENU_XML="""
       <item>
         <attribute name="action">win.quit</attribute>
         <attribute name="label" translatable="yes">{3}</attribute>
+        <attribute name="accel">&lt;Primary&gt;Q</attribute>
     </item>
     </section>
   </menu>
@@ -946,15 +947,14 @@ class WinPopover(Gtk.PopoverMenu):
     # parent: window - widget: box or scrollwindow - type: 1 one item - >1 more than one item - -99 background
     def __init__(self, _parent, _widget, _path, _type, _pos=None):
         super().__init__()
-        self._parent = _parent
-        self._widget = _widget
+        self._parent = _parent # srollwindow
+        self._widget = _widget # itembox
         self._path = _path
         self._type = _type
         self._pos = _pos
         self.set_has_arrow(False)
         self.set_halign(Gtk.Align.START)
         self.set_parent(self._widget)
-        #
         #####################
         # The main menu
         self.file_menu = Gio.Menu.new()
@@ -990,7 +990,7 @@ class WinPopover(Gtk.PopoverMenu):
             def on_new_file(action, param, _d, ff):
                 try:
                     dest_path = os.path.join(self._path, _d)
-                    ret = on_copy_file2(dest_path, ff)
+                    ret = on_copy_file2(dest_path, ff, 0)
                     if isinstance(ret, str):
                         global _errors
                         AlDial(self_main, str(E))
@@ -1034,7 +1034,7 @@ class WinPopover(Gtk.PopoverMenu):
         if self._type == -99:
             self.file_menu.append(_lang.TERMINAL, 'win.Terminal')
             button_term = Gio.SimpleAction(name="Terminal", parameter_type=None, enabled=True)
-            button_term.connect("activate", self.on_terminal, self._path)
+            button_term.connect("activate", self._widget.on_terminal, self._path)
             action_group.add_action(button_term)
         if self._type == 1:
             try: # e.g. not accessible item
@@ -1043,7 +1043,7 @@ class WinPopover(Gtk.PopoverMenu):
                 if stat.S_ISDIR(mode):
                     self.file_menu.append(_lang.TERMINAL, 'win.Terminal')
                     self.button_term = Gio.SimpleAction(name="Terminal", parameter_type=None, enabled=True)
-                    self.button_term.connect("activate", self.on_terminal, ff)
+                    self.button_term.connect("activate", self._parent.on_terminal, ff)
                     action_group.add_action(self.button_term)
             except:
                 pass
@@ -1071,7 +1071,8 @@ class WinPopover(Gtk.PopoverMenu):
             if self._path[0:len(_HOME)] == _HOME:
                 self.file_menu.append(_lang.TRASHCAN, 'win.Trash')
                 button_trash = Gio.SimpleAction(name="Trash", parameter_type=None, enabled=True)
-                button_trash.connect("activate", self.on_trash)
+                # button_trash.connect("activate", self.on_trash)
+                button_trash.connect("activate", self._parent.on_trash)
                 action_group.add_action(button_trash)
         # scripts
         if self._type > 0:
@@ -1130,11 +1131,11 @@ class WinPopover(Gtk.PopoverMenu):
     def on_openwith(self, action, param, _file):
         on_choose_app(self._path, _file)
     
-    def on_terminal(self, action, param, _path):
-        try:
-            subprocess.run([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
-        except Exception as E:
-            AlDial(self_main, str(E))
+    # def on_terminal(self, action, param, _path):
+        # try:
+            # subprocess.run([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
+        # except Exception as E:
+            # AlDial(self_main, str(E))
     
     def on_script(self, action, param, _script):
         _list = ""
@@ -1250,17 +1251,17 @@ class WinPopover(Gtk.PopoverMenu):
             #
             _CD.present()
     
-    def on_trash(self, action, param):
-        # only home
-        can_trash = 0
-        if len(self._parent.SELECTED_ITEMS) > 0:
-            if self._path[0:len(_HOME)] == _HOME:
-                can_trash = 1
-        if can_trash:
-            ITEMS_TO_TRASH = []
-            for el in self._parent.SELECTED_ITEMS:
-                ITEMS_TO_TRASH.append(os.path.join(self._path, el))
-            TrashModule(ITEMS_TO_TRASH)
+    # def on_trash(self, action, param, _a=None, _b=None):
+        # # only home
+        # can_trash = 0
+        # if len(self._parent.SELECTED_ITEMS) > 0:
+            # if self._path[0:len(_HOME)] == _HOME:
+                # can_trash = 1
+        # if can_trash:
+            # ITEMS_TO_TRASH = []
+            # for el in self._parent.SELECTED_ITEMS:
+                # ITEMS_TO_TRASH.append(os.path.join(self._path, el))
+            # TrashModule(ITEMS_TO_TRASH)
     
     def on_paste(self, action, param):
         self.popdown()
@@ -2195,7 +2196,18 @@ class MainWindow(Gtk.ApplicationWindow):
         else:
             sys.exit()
         self._notebook.connect("switch_page", self.on_notebook_tab_changed)
-    
+        #
+        self._ctrl = Gtk.ShortcutController()
+        self.add_controller(self._ctrl)
+        # quit the application
+        _ca = Gtk.CallbackAction.new(self.on_quit_action, None, None)
+        _st = Gtk.ShortcutTrigger.parse_string("<Primary>q")
+        _sc = Gtk.Shortcut.new(_st, _ca)
+        self._ctrl.add_shortcut(_sc)
+        
+    def on_quit_action(self, action, param=None, _a=None, _b=None, _c=None):
+        self.app_.quit()
+        
     def on_close(self, _w):
         _WWIDTH = self.get_width()
         _WHEIGHT = self.get_height()
@@ -3446,7 +3458,45 @@ class ScrolWin(Gtk.ScrolledWindow):
         self.right_click_setted = 0
         #
         self.grid1.grab_focus()
+        ### shortcuts
+        self._ctrl = Gtk.ShortcutController()
+        self.add_controller(self._ctrl)
+        # items to the recycle bin
+        _ca = Gtk.CallbackAction.new(self.on_trash, None, None)
+        _st = Gtk.ShortcutTrigger.parse_string("<Control>r")
+        _sc = Gtk.Shortcut.new(_st, _ca)
+        self._ctrl.add_shortcut(_sc)
+        # open the terminal
+        _ca = Gtk.CallbackAction.new(self.on_terminal, None, None)
+        _st = Gtk.ShortcutTrigger.parse_string("<Control>t")
+        _sc = Gtk.Shortcut.new(_st, _ca)
+        self._ctrl.add_shortcut(_sc)
+    
+    def on_terminal(self, action, param, _path=None, _a=None, _b=None):
+        if _path and os.path.exists(_path):
+            _path = _path
+        else:
+            if len(self.SELECTED_ITEMS) == 1:
+                _path = os.path.join(self._path, self.SELECTED_ITEMS[0])
+            elif len(self.SELECTED_ITEMS) == 0:
+                _path = self._path
+        try:
+            subprocess.run([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
+        except Exception as E:
+            AlDial(self_main, str(E))
         
+    def on_trash(self, action, param, _a=None, _b=None):
+        # only home
+        can_trash = 0
+        if len(self.SELECTED_ITEMS) > 0:
+            if self._path[0:len(_HOME)] == _HOME:
+                can_trash = 1
+        if can_trash:
+            ITEMS_TO_TRASH = []
+            for el in self.SELECTED_ITEMS:
+                ITEMS_TO_TRASH.append(os.path.join(self._path, el))
+            TrashModule(ITEMS_TO_TRASH)
+    
     def f_setup(self, fact, item):
         box = ItemBox(self, item)
         ######
@@ -3600,6 +3650,8 @@ class ScrolWin(Gtk.ScrolledWindow):
             self.shift_pressed = 1
         elif keyval == Gdk.KEY_Escape:
             self.escape_pressed = 1
+        elif keyval == Gdk.KEY_Delete:
+            self.on_trash(None, None, None, None)
     
     def on_key_released(self, event, keyval, keycode, state):
         self.ctrl_pressed = 0
@@ -4326,11 +4378,11 @@ class MyApp(Gtk.Application):
         super().__init__(**kwargs)
         # # (detailed_action_name, accels)
         # # self.set_accels_for_action("win.OpenWith", ["<Control>Z"])
-        # self.set_accels_for_action("win.Terminal", ["<Control>T"])
+        self.set_accels_for_action("win.Terminal", ["<Control>t"])
         # self.set_accels_for_action("win.Copy", ["<Control>C"])
         # self.set_accels_for_action("win.Cut", ["<Control>X"])
         # self.set_accels_for_action("win.Paste", ["<Control>V"])
-        # self.set_accels_for_action("win.Trash", ["Cancel"])
+        self.set_accels_for_action("win.Trash", ["<Control>r"])
 
     def do_activate(self):
         active_window = self.props.active_window
@@ -4340,7 +4392,5 @@ class MyApp(Gtk.Application):
             self.win = MainWindow(application=self)
             self.win.present()
 
-
-
-app = MyApp(application_id="com.horizon.fm4",flags= Gio.ApplicationFlags.FLAGS_NONE)
+app = MyApp(application_id="com.horizon.fm4",flags= Gio.ApplicationFlags.NON_UNIQUE)
 app.run(None)
