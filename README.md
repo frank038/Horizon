@@ -21,5 +21,6 @@ Features:
 - has a graphical setting application for all the supported options
 - modern visual thanks to the Gtk4 toolkit.
 
+Behaviour: the thumbnails are generated and/or loaded in sync mode, that means they are all generated before the files and folders will appear.
 
 ![My image](https://github.com/frank038/Horizon/blob/main/screenshot.png)
