@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.2"
+VERSION = "0.8.3"
 FMNAME = "Horizon alpha"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -923,9 +923,7 @@ class WinPopover(Gtk.PopoverMenu):
             # open in a new tab
             item_name = self._widget.item_name
             _file = os.path.join(self._path, item_name)
-            mode = os.lstat(_file).st_mode
-            is_dir = stat.S_ISDIR(mode)
-            if is_dir:
+            if os.path.isdir(_file):
                 self.file_menu.append(_lang.OPENFOLDERNEWTAB, 'win.OpenFolderTab')
                 button_oftab = Gio.SimpleAction(name="OpenFolderTab", parameter_type=None, enabled=True)
                 button_oftab.connect("activate", self.on_open_folder_tab, _file)
