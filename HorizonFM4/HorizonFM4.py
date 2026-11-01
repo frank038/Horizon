@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.1"
+VERSION = "0.8.2"
 FMNAME = "Horizon alpha"
+FMSITE = "https://github.com/frank038/Horizon"
 
 import sys,os
 # os.environ["LANGUAGE"] = "en"
@@ -918,6 +919,18 @@ class WinPopover(Gtk.PopoverMenu):
         self.insert_action_group('win', action_group)
         self.set_menu_model(self.file_menu)
         
+        if self._type == 1:
+            # open in a new tab
+            item_name = self._widget.item_name
+            _file = os.path.join(self._path, item_name)
+            mode = os.lstat(_file).st_mode
+            is_dir = stat.S_ISDIR(mode)
+            if is_dir:
+                self.file_menu.append(_lang.OPENFOLDERNEWTAB, 'win.OpenFolderTab')
+                button_oftab = Gio.SimpleAction(name="OpenFolderTab", parameter_type=None, enabled=True)
+                button_oftab.connect("activate", self.on_open_folder_tab, _file)
+                action_group.add_action(button_oftab)
+        
         if self._type == -99:
             # new folder
             self.file_menu.append(_lang.NEWFOLDER, 'win.NewFolder')
@@ -1043,8 +1056,16 @@ class WinPopover(Gtk.PopoverMenu):
             self.set_pointing_to(_rect)
         self.popup()
         
+    def on_open_folder_tab(self, action, param, item_path):
+        sw = ScrolWin(item_path, self._parent._parent)
+        sw.grid1.grab_focus()
+        if sw != None:
+            idx = self._parent._parent._notebook.append_page(sw, sw.tab_label)
+            self._parent._parent._notebook.set_tab_reorderable(sw, True)
+            self._parent._parent._notebook.set_current_page(idx)
+        
     def on_new_folder(self, action, param):
-        WD = RenDialog(self_main, 2, "Choose a new:", self._path)
+        WD = RenDialog(self_main, 2, _lang.CHOOSENEWNAME, self._path)
     
     def on_openwith_app(self, action, param, _file):
         new_path = os.path.join(self._path, _file)
@@ -1129,7 +1150,7 @@ class WinPopover(Gtk.PopoverMenu):
         self.popdown()
         if len(self._parent.SELECTED_WIDGET) == 1:
             _item = self._parent.SELECTED_WIDGET[0]
-            WD = RenDialog(self_main, 1, "Choose a new name:", _item)
+            WD = RenDialog(self_main, 1, _lang.CHOOSENEWNAME, _item)
         
     
     def on_remove(self, action, param):
@@ -2805,7 +2826,7 @@ class MainWindow(Gtk.ApplicationWindow):
         _aboutdial.set_version(VERSION)
         _aboutdial.set_authors(["Philip J. Fry"])
         _aboutdial.set_comments("Made for me 🙂")
-        _aboutdial.set_website("Site")
+        _aboutdial.set_website(FMSITE)
         _aboutdial.set_license_type(Gtk.License.GPL_3_0_ONLY)
         _aboutdial.set_transient_for(self_main)
         _aboutdial.present()
