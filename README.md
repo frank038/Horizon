@@ -16,7 +16,7 @@ Features:
 - custom scripts (the selected items are passed as argument: each item is separated by a newline, and the list terminates with a newline)
 - drag and drop support
 - some shortcuts
-- a separated language file, very easy to modify or translate into your language
+- a separated language file, very easy to modify or translate into your language; the right file is automatically loaded if found: the file must be in the form LOCALE_OF_YOUR_LANGUAGE.py; if any is found the default en.py will be used
 - can be used in portable mode, or can be installed (after creating a proper package o by using other installation methods): the installation directories are /usr/share for the main folder HorizonFM4, and /usr/bin for the script needed to execute the main program; in the folder FILES_FOR_INSTALLATION are the necessary files
 - very small, uses only the most common python stuff
 - has a graphical setting application for all the supported options
