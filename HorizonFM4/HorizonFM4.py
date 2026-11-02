@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.7 alpha"
+VERSION = "0.8.8 alpha"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
 import sys,os
-# os.environ["LANGUAGE"] = "en"
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gdk', '4.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gtk,Gdk,Gio,GObject,Pango,GLib,Graphene
+from gi.repository import Gtk,Gdk,Gio,GObject,Pango,GLib,Graphene,Gsk
 gi.require_version('GUdev', '1.0')
 from gi.repository import GUdev
 from urllib.parse import unquote, quote
@@ -57,8 +56,17 @@ SCRIPTS_DIRECTORY = os.path.join(HOME_CONFIG, "scripts")
 
 PANEL_STYLE_CSS = os.path.join(HOME_CONFIG, "configs/windowstyle.css")
 
+## language
+# os.environ["LANGUAGE"] = "en"
 sys.path.append(os.path.join(HOME_CONFIG, "langs"))
-_lang = __import__("en")
+_lang_names = GLib.get_language_names()
+_langs_application = os.listdir(os.path.join(HOME_CONFIG, "langs"))
+for l_lang in _lang_names:
+    if l_lang+".py" in _langs_application:
+        _lang = __import__(l_lang)
+        break
+else:
+    _lang = __import__("en")
 
 config_file = os.path.join(HOME_CONFIG, "configs/config.json")
 config_conf_start = { 
@@ -779,13 +787,34 @@ class ItemBox(Gtk.Box):
         if len(self._parent.SELECTED_WIDGET) == 1:
             if self._parent.SELECTED_WIDGET[0] == self:
                 n_ic = None
+                ########
                 _icon = self.icon # gtk.image
-                for ic in _icon.get_gicon().get_names():
-                    if icon_theme.has_icon(ic):
-                        n_ic = icon_theme.lookup_icon(ic, [], DRAG_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_REGULAR)
-                        break
-                if n_ic:
-                    ctrl.set_icon(n_ic, 0, 0) # paintable
+                texture = _icon.get_paintable()
+                if texture == None:
+                    for ic in _icon.get_gicon().get_names():
+                        if icon_theme.has_icon(ic):
+                            n_ic = icon_theme.lookup_icon(ic, [], DRAG_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_REGULAR)
+                            break
+                    if n_ic:
+                        ctrl.set_icon(n_ic, 0, 0) # paintable
+                else:
+                    __w = texture.get_width()
+                    __h = texture.get_height()
+                    if __h > __w:
+                        __w = int(DRAG_ICON_SIZE*__w/__h)
+                        __h = DRAG_ICON_SIZE 
+                    elif __w > __h:
+                        t_rx = __w/__h
+                        __w = DRAG_ICON_SIZE
+                        __h = int(DRAG_ICON_SIZE/t_rx)
+                    _snapshot = Gtk.Snapshot.new()
+                    size_rect = Graphene.Rect()
+                    size_rect.init(0,0,__w,__h)
+                    _snapshot.append_scaled_texture(texture, 0, size_rect)
+                    _rs = Graphene.Size()
+                    _rs.init(__w,__h)
+                    texture = _snapshot.to_paintable(_rs)
+                    ctrl.set_icon(texture, 0, 0) # paintable
         elif len(self._parent.SELECTED_WIDGET) > 1:
             _texture = Gdk.Texture.new_from_filename(os.path.join(HOME_CONFIG,"icons","items_multi.png"))
             snapshot = Gtk.Snapshot.new()
@@ -3197,14 +3226,15 @@ class ScrolWinTrash(Gtk.ScrolledWindow):
                 except:
                     pass
         elif _event == Gio.FileMonitorEvent.MOVED_OUT or _event == Gio.FileMonitorEvent.DELETED:
-            if self.deleterestore_button_pressed == 1:
-                self.deleterestore_button_pressed = 0
-            else:
-                file_path = _file.get_path()
-                #
-                for i in range(self._multi.get_n_items()):
-                    _data_item = self._multi.get_item(i) # is Data object
-                    self._ls.remove(i)
+            pass
+            # if self.deleterestore_button_pressed == 1:
+                # self.deleterestore_button_pressed = 0
+            # else:
+                # file_path = _file.get_path()
+                # #
+                # for i in range(self._multi.get_n_items()):
+                    # _data_item = self._multi.get_item(i) # is Data object
+                    # self._ls.remove(i)
     
     def get_file_data(self, file_path):
         fakename = os.path.basename(file_path)
@@ -3237,22 +3267,29 @@ class ScrolWinTrash(Gtk.ScrolledWindow):
     def on_restoredelete_btn(self, _w, _type):
         self.deleterestore_button_pressed = 1
         _errors = ""
-        for i in range(self._multi.get_n_items()):
+        n_items = self._multi.get_n_items()
+        LIST_TDATA = []
+        for i in range(n_items):
             if self._multi.is_selected(i):
                 _data_item = self._multi.get_item(i) # is Data object
-                if _type == "restore":
-                    ret = RestoreTrash("HOME", [_data_item]).itemRestore()
-                    if ret == [1,-1]:
-                        self._ls.remove(i)
-                    else:
-                        _errors += "{}: {}\n".format(_lang.GERROR, os.path.basename(_data_item.name))
-                elif _type == "delete":
-                    ret = DeleteTrash("HOME", [_data_item]).itemDelete()
-                    if ret == [1,-1]:
-                        self._ls.remove(i)
-                    else:
-                        _errors += "{}: {}\n".format(_lang.GERROR, os.path.basename(_data_item.name))
-        #
+                LIST_TDATA.append(_data_item)
+        for el in reversed(LIST_TDATA):
+            if _type == "restore":
+                ret = RestoreTrash("HOME", [el]).itemRestore()
+                if ret == [1,-1]:
+                    ret2 = self._ls.find(el)
+                    if ret2[0] == True:
+                        self._ls.remove(ret2[1])
+                else:
+                    _errors += "{}: {}\n".format(_lang.GERROR, os.path.basename(_data_item.name))
+            elif _type == "delete":
+                ret = DeleteTrash("HOME", [el]).itemDelete()
+                if ret == [1,-1]:
+                    ret2 = self._ls.find(el)
+                    if ret2[0] == True:
+                        self._ls.remove(ret2[1])
+                else:
+                    _errors += "{}: {}\n".format(_lang.GERROR, os.path.basename(_data_item.name))
         if _errors != "":
             self.deleterestore_button_pressed = 0
             SimpleDialog(self_main, _lang.GERRORS, _errors)
