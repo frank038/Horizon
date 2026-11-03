@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.8 alpha"
+VERSION = "0.8.9 alpha"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -807,6 +807,9 @@ class ItemBox(Gtk.Box):
                         t_rx = __w/__h
                         __w = DRAG_ICON_SIZE
                         __h = int(DRAG_ICON_SIZE/t_rx)
+                    else:
+                        __w = DRAG_ICON_SIZE
+                        __h = DRAG_ICON_SIZE
                     _snapshot = Gtk.Snapshot.new()
                     size_rect = Graphene.Rect()
                     size_rect.init(0,0,__w,__h)
