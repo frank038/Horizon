@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.9 alpha"
+VERSION = "0.8.10 alpha"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -1050,6 +1050,21 @@ class WinPopover(Gtk.PopoverMenu):
             button_ow = Gio.SimpleAction(name="OpenWith", parameter_type=None, enabled=True)
             button_ow.connect("activate", self.on_openwith, self._widget.item_name)
             action_group.add_action(button_ow)
+        # exec
+        if self._type == 1:
+            item_name = self._widget.item_name
+            _file = os.path.join(self._path, item_name)
+            if os.path.isfile(_file) and os.access(_file, os.X_OK):
+                def _execute_file(action, param, _f, _p):
+                    _p.popdown()
+                    try:
+                        subprocess.Popen([_f])
+                    except Exception as E:
+                        AlDial(self_main, str(E))
+                self.file_menu.append(_lang.FEXECUTE, 'win.Execute')
+                button_execute = Gio.SimpleAction(name="Execute", parameter_type=None, enabled=True)
+                button_execute.connect("activate", _execute_file, _file, self)
+                action_group.add_action(button_execute)
         # items
         if self._type != -99:
             # copy items
