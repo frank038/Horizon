@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.10 alpha"
+VERSION = "0.8.11 alpha"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -2636,13 +2636,18 @@ class MainWindow(Gtk.ApplicationWindow):
                     _m_icon = _mount[3].get_icon()
                     box.icon.set_from_gicon(_m_icon)
                     break
+            #
+            event_controller = Gtk.EventControllerMotion.new()
+            event_controller.connect("enter", self.on_enter,mount_point,device_size,_model,target_device)
+            m_lbl2.add_controller(event_controller)
             if mount_point and os.path.exists(mount_point):
                 btn_mount.set_tooltip_text(_lang.MUMOUNT)
                 device_size_used = self.device_get_used_size(mount_point)
-                if device_size_used != 0:
-                    m_lbl2.set_tooltip_text("{}: {} ({})\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, device_size_used, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
+                # if device_size_used != 0:
+                    # m_lbl2.set_tooltip_text("{}: {} ({})\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, device_size_used, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
             else:
                 btn_mount.set_tooltip_text(_lang.MMOUNT)
+            #
             btn_mount.set_child(p_icn_mount)
             box.append(btn_mount)
             btn_mount.connect("clicked", self.on_udisk_mount_device, box)
@@ -2650,6 +2655,13 @@ class MainWindow(Gtk.ApplicationWindow):
             box._eject_btn = None
             if can_eject != 0 and box._mount != None:
                 self.add_eject_btn(box)
+    
+    def on_enter(self, ctrl, x, y, mount_point,device_size,_model,target_device):
+        device_size_used = self.device_get_used_size(mount_point)
+        if device_size_used != 0:
+            _text = "{}: {} ({})\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, device_size_used, _lang.DMODEL, _model, _lang.DDEVICE, target_device)
+            ctrl.get_widget().set_tooltip_text(_text)
+        return True
         
     # this is possible for mounted discs
     def add_eject_btn(self, box):
