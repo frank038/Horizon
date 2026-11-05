@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.11 alpha"
+VERSION = "0.8.12 alpha"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -182,13 +182,13 @@ def convert_size(fsize2):
     elif fsize2//1024 == 0:
         sfsize = str(fsize2)+" bytes"
     elif fsize2//1048576 == 0:
-        sfsize = str(round(fsize2/1024))+" KB"
+        sfsize = str(round(fsize2/1024, 3))+" KB"
     elif fsize2//1073741824 == 0:
-        sfsize = str(round(fsize2/1048576))+" MB"
+        sfsize = str(round(fsize2/1048576, 3))+" MB"
     elif fsize2//1099511627776 == 0:
-        sfsize = str(round(fsize2/1073741824))+" GiB"
+        sfsize = str(round(fsize2/1073741824, 3))+" GiB"
     else:
-        sfsize = str(round(fsize2/1099511627776))+" GiB"
+        sfsize = str(round(fsize2/1099511627776, 3))+" GiB"
     return sfsize
 
 ############# copy/cut section
