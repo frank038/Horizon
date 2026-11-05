@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.0 beta"
+VERSION = "0.9.1 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -20,6 +20,7 @@ from pathlib import Path
 import datetime
 import json
 import locale
+import re
 
 gi.require_version('UDisks', '2.0') 
 from gi.repository import UDisks
@@ -1071,8 +1072,8 @@ class WinPopover(Gtk.PopoverMenu):
                 is_default_name = is_default.get_display_name()
                 for fapp in fapps:
                     if isinstance(is_default, Gio.AppInfo):
-                        _label = fapp.get_display_name()
-                        pre_label = _label.replace(" ", "_")
+                        _label = fapp.get_display_name().split("_")[0]
+                        pre_label = _label.replace(" ", "_").replace("=","_").replace("(","_").replace(")","_")
                         if _label == is_default_name:
                             _label += " "+_lang.FAPPDEFAULT
                             openwith_submenu.insert(0, _label, 'win3.{}'.format(pre_label))
