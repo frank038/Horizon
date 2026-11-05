@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.8.12 alpha"
+VERSION = "0.9.0 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -19,6 +19,7 @@ import subprocess
 from pathlib import Path
 import datetime
 import json
+import locale
 
 gi.require_version('UDisks', '2.0') 
 from gi.repository import UDisks
@@ -26,6 +27,9 @@ from gi.repository import UDisks
 app = None
 _curr_dir = os.getcwd()
 _HOME = os.path.expanduser("~")
+
+locale.setlocale(locale.LC_ALL, '')
+DECIMAL_SEP = locale.localeconv()["decimal_point"]
 
 # the directory settings and options
 if not os.access(_curr_dir, os.W_OK):
@@ -189,7 +193,7 @@ def convert_size(fsize2):
         sfsize = str(round(fsize2/1073741824, 3))+" GiB"
     else:
         sfsize = str(round(fsize2/1099511627776, 3))+" GiB"
-    return sfsize
+    return sfsize.replace(".", DECIMAL_SEP or ".")
 
 ############# copy/cut section
 _errors = ""
@@ -716,7 +720,7 @@ class ItemBox(Gtk.Box):
         elif num_selected_items > 1:
             num_items = num_selected_items
         # window - box
-        _popover = WinPopover(self._parent,self,self._parent._path,num_items)
+        _popover = WinPopover(self._parent,self,self._parent._path,num_items,[x,y])
         
     def on_key_pressed(self, event, keyval, keycode, state):
         if keyval == Gdk.KEY_Control_L or keyval == Gdk.KEY_Control_R:
@@ -977,13 +981,13 @@ class OWD(Gtk.AppChooserDialog):
 
 class WinPopover(Gtk.PopoverMenu):
     # parent: window - widget: box or scrollwindow - type: 1 one item - >1 more than one item - -99 background
-    def __init__(self, _parent, _widget, _path, _type, _pos=None):
+    def __init__(self, _parent, _widget, _path, _type, _pos):
         super().__init__()
         self._parent = _parent # srollwindow
         self._widget = _widget # itembox
-        self._path = _path
+        self._path = _path # parent folder
         self._type = _type
-        self._pos = _pos
+        self._pos = _pos # [x,y]
         self.set_has_arrow(False)
         self.set_halign(Gtk.Align.START)
         self.set_parent(self._widget)
@@ -1046,10 +1050,43 @@ class WinPopover(Gtk.PopoverMenu):
             button_owa.connect("activate", self.on_openwith_app, self._widget.item_name)
             action_group.add_action(button_owa)
             
-            self.file_menu.append(_lang.OPENWITH, 'win.OpenWith')
+            # self.file_menu.append(_lang.OPENWITH, 'win.OpenWith')
+            # button_ow = Gio.SimpleAction(name="OpenWith", parameter_type=None, enabled=True)
+            # button_ow.connect("activate", self.on_openwith, self._widget.item_name)
+            # action_group.add_action(button_ow)
+            
+            openwith_submenu = Gio.Menu.new()
+            self.file_menu.append_submenu(_lang.OPENWITH, openwith_submenu)
+            app_action_group = Gio.SimpleActionGroup()
+            self.insert_action_group('win3', app_action_group)
+            #
+            item_name = self._widget.item_name
+            _file = os.path.join(self._path, item_name)
+            # [[appinfo], is_default_appinfo]
+            app_items = self._open_with_items(Gio.File.new_for_path(_file))
+            if app_items:
+                fapps = app_items[0]
+                is_default = app_items[1]
+                # gio.appinfo
+                is_default_name = is_default.get_display_name()
+                for fapp in fapps:
+                    if isinstance(is_default, Gio.AppInfo):
+                        _label = fapp.get_display_name()
+                        pre_label = _label.replace(" ", "_")
+                        if _label == is_default_name:
+                            _label += " "+_lang.FAPPDEFAULT
+                            openwith_submenu.insert(0, _label, 'win3.{}'.format(pre_label))
+                        else:
+                            openwith_submenu.append(_label, 'win3.{}'.format(pre_label))
+                        if _label:
+                            button_app = Gio.SimpleAction(name=pre_label, parameter_type=None, enabled=True)
+                            button_app.connect("activate", self.on_app_exec, fapp, _file)
+                            app_action_group.add_action(button_app)
+            # dialog
+            openwith_submenu.append(_lang.OPENWITH, 'win3.OpenWith')
             button_ow = Gio.SimpleAction(name="OpenWith", parameter_type=None, enabled=True)
             button_ow.connect("activate", self.on_openwith, self._widget.item_name)
-            action_group.add_action(button_ow)
+            app_action_group.add_action(button_ow)
         # exec
         if self._type == 1:
             item_name = self._widget.item_name
@@ -1136,14 +1173,39 @@ class WinPopover(Gtk.PopoverMenu):
         button_property.connect("activate", self.on_property)
         action_group.add_action(button_property)
         # background
-        if self._type == -99:
-            _rect = Gdk.Rectangle()
-            _rect.x = self._pos[0]
-            _rect.y = self._pos[1]
-            _rect.width = 1
-            _rect.height = 1
-            self.set_pointing_to(_rect)
+        # if self._type == -99:
+        _rect = Gdk.Rectangle()
+        _rect.x = self._pos[0]
+        _rect.y = self._pos[1]
+        _rect.width = 1
+        _rect.height = 1
+        self.set_pointing_to(_rect)
         self.popup()
+        
+    def _open_with_items(self, _gfile):
+        items = []
+        is_default = None
+        if _gfile != None:
+            _info = _gfile.query_info("standard::content-type", 0, None)
+            content_type = _info.get_content_type() or ""
+            default = False
+            if content_type:
+                if is_default == None:
+                    is_default = Gio.AppInfo.get_default_for_type(content_type, False)
+                for app in Gio.AppInfo.get_all_for_type(content_type): #if ct else []:
+                    if app == is_default:
+                        items.insert(0, app)
+                    else:
+                        items.append(app)
+        return [items, is_default]
+        
+    def on_app_exec(self, action, param, fapp, _file):
+        try:
+            ret = fapp.launch([Gio.File.new_for_path(_file)], None)
+            if ret == False:
+                AlDial(self_main, _lang.FAPPERROR)
+        except Exception as E:
+            AlDial(self_main, str(E))
         
     def on_open_folder_tab(self, action, param, item_path):
         sw = ScrolWin(item_path, self._parent._parent)
@@ -1391,6 +1453,7 @@ class PropertyDialog(Gtk.Window):
         self.perm_is_changed = False
         # one or more than one item selected
         if isinstance(self._list, list):
+            self.total_num_items_hiddens = 0
             # one item selected
             if len(self._list) == 1:
                 gfile = self._list[0]
@@ -1534,7 +1597,7 @@ class PropertyDialog(Gtk.Window):
                 owner = path.owner()
                 user_lbl = Gtk.Label(label=owner)
                 user_lbl.set_hexpand(True)
-                user_lbl.props.halign = Gtk.Align.END
+                user_lbl.props.halign = Gtk.Align.START
                 boxuser.append(user_lbl)
                 self.dd_user = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
                 self.dd_user.props.halign = Gtk.Align.END
@@ -1546,7 +1609,7 @@ class PropertyDialog(Gtk.Window):
                 box_frame2.append(boxgroup)
                 group_lbl = Gtk.Label(label=_lang.ISGROUP)
                 group_lbl.set_hexpand(True)
-                group_lbl.props.halign = Gtk.Align.END
+                group_lbl.props.halign = Gtk.Align.START
                 boxgroup.append(group_lbl)
                 self.dd_group = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
                 self.dd_group.props.halign = Gtk.Align.END
@@ -1558,7 +1621,7 @@ class PropertyDialog(Gtk.Window):
                 box_frame2.append(boxother)
                 other_lbl = Gtk.Label(label=_lang.ISOTHER)
                 other_lbl.set_hexpand(True)
-                other_lbl.props.halign = Gtk.Align.END
+                other_lbl.props.halign = Gtk.Align.START
                 boxother.append(other_lbl)
                 self.dd_other = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
                 self.dd_other.props.halign = Gtk.Align.END
@@ -1630,7 +1693,7 @@ class PropertyDialog(Gtk.Window):
                     box_frame1.append(boxuser)
                     user_lbl = Gtk.Label(label=owner)
                     user_lbl.set_hexpand(True)
-                    user_lbl.props.halign = Gtk.Align.END
+                    user_lbl.props.halign = Gtk.Align.START
                     boxuser.append(user_lbl)
                     self.dd_user = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
                     self.dd_user.props.halign = Gtk.Align.END
@@ -1640,7 +1703,7 @@ class PropertyDialog(Gtk.Window):
                     box_frame1.append(boxgroup)
                     group_lbl = Gtk.Label(label=_lang.ISGROUP)
                     group_lbl.set_hexpand(True)
-                    group_lbl.props.halign = Gtk.Align.END
+                    group_lbl.props.halign = Gtk.Align.START
                     boxgroup.append(group_lbl)
                     self.dd_group = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
                     self.dd_group.props.halign = Gtk.Align.END
@@ -1650,7 +1713,7 @@ class PropertyDialog(Gtk.Window):
                     box_frame1.append(boxother)
                     other_lbl = Gtk.Label(label=_lang.ISOTHER)
                     other_lbl.set_hexpand(True)
-                    other_lbl.props.halign = Gtk.Align.END
+                    other_lbl.props.halign = Gtk.Align.START
                     boxother.append(other_lbl)
                     self.dd_other = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
                     self.dd_other.props.halign = Gtk.Align.END
@@ -2476,6 +2539,7 @@ class MainWindow(Gtk.ApplicationWindow):
     
     # the device has been mounted - set the mount path
     def on_mount_added(self, _vm, _mount):
+        self.STARTING_MOUNTS_LIST.append([_mount.get_default_location().get_path(), self.find_mount_device(_mount.get_default_location().get_path()), _mount.can_eject(), _mount])
         mount_gfile = _mount.get_root()
         # the mount point
         mount_path = mount_gfile.get_path()
@@ -2506,6 +2570,10 @@ class MainWindow(Gtk.ApplicationWindow):
     # _mount is gio.mount
     # the device has been unmounted
     def on_mount_removed(self, _vm, _mount):
+        for _m in self.STARTING_MOUNTS_LIST[:]:
+            if _m[3] == _mount:
+                self.STARTING_MOUNTS_LIST.remove(_m)
+                break
         m_name = _mount.get_name()
         # close the tabs open
         n_pages = self._notebook.get_n_pages()
@@ -2604,7 +2672,6 @@ class MainWindow(Gtk.ApplicationWindow):
             m_lbl.connect("clicked", self.on_mount_mount, target_device, mount_path)
             m_lbl2 = Gtk.Label(label=m_name)
             m_lbl2.set_hexpand(True)
-            m_lbl2.set_tooltip_text("{}: {}\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
             m_lbl.set_child(m_lbl2)
             m_lbl.add_css_class("flat")
             m_lbl.set_hexpand(True)
@@ -2638,13 +2705,10 @@ class MainWindow(Gtk.ApplicationWindow):
                     break
             #
             event_controller = Gtk.EventControllerMotion.new()
-            event_controller.connect("enter", self.on_enter,mount_point,device_size,_model,target_device)
+            event_controller.connect("enter", self.on_enter,device_size,_model,target_device)
             m_lbl2.add_controller(event_controller)
             if mount_point and os.path.exists(mount_point):
                 btn_mount.set_tooltip_text(_lang.MUMOUNT)
-                device_size_used = self.device_get_used_size(mount_point)
-                # if device_size_used != 0:
-                    # m_lbl2.set_tooltip_text("{}: {} ({})\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, device_size_used, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
             else:
                 btn_mount.set_tooltip_text(_lang.MMOUNT)
             #
@@ -2656,11 +2720,19 @@ class MainWindow(Gtk.ApplicationWindow):
             if can_eject != 0 and box._mount != None:
                 self.add_eject_btn(box)
     
-    def on_enter(self, ctrl, x, y, mount_point,device_size,_model,target_device):
-        device_size_used = self.device_get_used_size(mount_point)
-        if device_size_used != 0:
-            _text = "{}: {} ({})\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, device_size_used, _lang.DMODEL, _model, _lang.DDEVICE, target_device)
-            ctrl.get_widget().set_tooltip_text(_text)
+    def on_enter(self, ctrl, x, y, device_size,_model,target_device):
+        mount_point = None
+        for _mount in self.STARTING_MOUNTS_LIST:
+            if _mount[1] == target_device:
+                mount_point = _mount[0]
+                break
+        if mount_point:
+            device_size_used = self.device_get_used_size(mount_point)
+            if device_size_used != 0:
+                _text = "{}: {} ({})\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, device_size_used, _lang.DMODEL, _model, _lang.DDEVICE, target_device)
+                ctrl.get_widget().set_tooltip_text(_text)
+        else:
+            ctrl.get_widget().set_tooltip_text("{}: {}\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
         return True
         
     # this is possible for mounted discs
@@ -2696,10 +2768,8 @@ class MainWindow(Gtk.ApplicationWindow):
     
     # handle: adding and removing a device and change the name in the view
     def on_uevent(self, client, action, device):
-        # add: pennetta inserita
         if action == "add":
             self.on_add_device(client, action, device)
-        # remove: pennetta tolta
         if action == "remove":
             target_device = device.get_device_file()
             parent_device = device.get_parent().get_device_file()
@@ -2749,7 +2819,6 @@ class MainWindow(Gtk.ApplicationWindow):
                         else:
                             _model = _lang.DDEVICE
                         #
-                        _fc.lbl.set_tooltip_text("{}: {}\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
                         # update the mount point
                         mount_point= self.find_mount_point(target_device)
                         #
@@ -2757,12 +2826,8 @@ class MainWindow(Gtk.ApplicationWindow):
                         #
                         if os.path.exists(mount_point):
                             _fc.btn_mount.set_tooltip_text(_lang.MUMOUNT)
-                            device_size_used = self.device_get_used_size(mount_point)
-                            if device_size_used != 0:
-                                _fc.lbl.set_tooltip_text("{}: {} ({})\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, device_size_used, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
                         else:
                             _fc.btn_mount.set_tooltip_text(_lang.MMOUNT)
-                            _fc.lbl.set_tooltip_text("{}: {}\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
                     except:
                         pass
                     break
@@ -2792,8 +2857,6 @@ class MainWindow(Gtk.ApplicationWindow):
                     _model = box._model
                     device_size = self.device_get_size(target_device, parent_device)
                     device_size_used = self.device_get_used_size(mount_path)
-                    if device_size_used != 0:
-                        box.lbl.set_tooltip_text("{}: {} ({})\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, device_size_used, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
                     return True
                 except Exception as E:
                     AlDial(self_main, str(E))
@@ -2821,8 +2884,6 @@ class MainWindow(Gtk.ApplicationWindow):
                     filesystem.call_unmount_sync(options, None)
                     box.btn_mount.set_tooltip_text(_lang.MMOUNT)
                     _model = box._model
-                    device_size = self.device_get_size(target_device, parent_device)
-                    box.lbl.set_tooltip_text("{}: {}\n{}: {}\n{}: {}".format(_lang.DSIZE, device_size, _lang.DMODEL, _model, _lang.DDEVICE, target_device))
                     return True
                 except Exception as E:
                     AlDial(self_main, str(E))
