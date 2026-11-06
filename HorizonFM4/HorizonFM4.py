@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.2 beta"
+VERSION = "0.9.3 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -1119,7 +1119,7 @@ class WinPopover(Gtk.PopoverMenu):
         if self._type == -99:
             self.file_menu.append(_lang.TERMINAL, 'win.Terminal')
             button_term = Gio.SimpleAction(name="Terminal", parameter_type=None, enabled=True)
-            button_term.connect("activate", self._widget.on_terminal, self._path)
+            button_term.connect("activate", self._widget.on_terminal, self._path, self)
             action_group.add_action(button_term)
         if self._type == 1:
             try: # e.g. not accessible item
@@ -3602,6 +3602,8 @@ class ScrolWin(Gtk.ScrolledWindow):
         self._ctrl.add_shortcut(_sc)
     
     def on_terminal(self, action, param, _path=None, _a=None, _b=None):
+        if isinstance(_a, Gtk.Popover):
+            _a.popdown()
         if _path and os.path.exists(_path):
             _path = _path
         else:
