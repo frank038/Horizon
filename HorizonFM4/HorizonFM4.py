@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.1 beta"
+VERSION = "0.9.2 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -20,7 +20,6 @@ from pathlib import Path
 import datetime
 import json
 import locale
-import re
 
 gi.require_version('UDisks', '2.0') 
 from gi.repository import UDisks
@@ -567,10 +566,11 @@ def copy_file_function(path_source,_dest,_operation,_event,_signal,_object,_same
             path_source.remove("")
             continue
         if os.path.exists(os.path.join(_dest, os.path.basename(el))):
-            there_same_item = 1
-            break
+            if os.path.dirname(el) != _dest:
+                there_same_item = 1
+                break
     _result = None
-    if there_same_item:
+    if there_same_item == 1:
         _OB = OBDial(self_main, _result)
         def dialog_action(_obj, _res, _data):
             # 0 yes overwrite - 1 no backup
