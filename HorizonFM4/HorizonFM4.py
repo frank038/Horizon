@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.3 beta"
+VERSION = "0.9.4 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -1248,11 +1248,18 @@ class WinPopover(Gtk.PopoverMenu):
             # AlDial(self_main, str(E))
     
     def on_script(self, action, param, _script):
+        self.popdown()
         _list = ""
         _path = self._parent._path
         for el in self._parent.SELECTED_ITEMS:
             _list += os.path.join(_path, el)+"\n"
-        subprocess.run([_script, "{}".format(_list)])
+        try:
+            subprocess.run([_script, "{}".format(_list)])
+            # ret = GLib.spawn_sync(None, [_script, "{}".format(_list), "&"], None, GLib.SpawnFlags.DEFAULT, None, None)
+            # if ret[0] == False:
+                # AlDial(self_main, _lang.FAPPERROR)
+        except:
+            pass
         
     def on_property(self, action, param):
         if self._type > 0:
@@ -3106,6 +3113,9 @@ class PathBar(Gtk.ScrolledWindow):
         if _int == 0 and isinstance(self._parent._notebook, Gtk.Notebook):
             sw = self._parent._notebook.get_nth_page(self._parent._notebook.get_current_page())
             sw._path = absolute_path
+        #
+        _adj = self.get_hadjustment()
+        GLib.idle_add(lambda: _adj.set_value(_adj.get_upper()))
     
     def _append_segment_button(self, i: int, label: str, target_path: str, is_last: bool):
         btn = Gtk.Button.new()
@@ -3612,7 +3622,11 @@ class ScrolWin(Gtk.ScrolledWindow):
             elif len(self.SELECTED_ITEMS) == 0:
                 _path = self._path
         try:
-            subprocess.run([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
+            # subprocess.run([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
+            TERMINAL2 = shutil.which(TERMINAL)
+            ret = GLib.spawn_sync(None, [TERMINAL2, "{}{}".format(TERMINAL_ARG, _path)], None, GLib.SpawnFlags.DEFAULT, None, None)
+            if ret[0] == False:
+                AlDial(self_main, _lang.FAPPERROR)
         except Exception as E:
             AlDial(self_main, str(E))
         
