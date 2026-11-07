@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.4 beta"
+VERSION = "0.9.5 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -3612,8 +3612,8 @@ class ScrolWin(Gtk.ScrolledWindow):
         self._ctrl.add_shortcut(_sc)
     
     def on_terminal(self, action, param, _path=None, _a=None, _b=None):
-        if isinstance(_a, Gtk.Popover):
-            _a.popdown()
+        # if isinstance(_a, Gtk.Popover):
+            # _a.popdown()
         if _path and os.path.exists(_path):
             _path = _path
         else:
@@ -3622,11 +3622,15 @@ class ScrolWin(Gtk.ScrolledWindow):
             elif len(self.SELECTED_ITEMS) == 0:
                 _path = self._path
         try:
-            # subprocess.run([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
             TERMINAL2 = shutil.which(TERMINAL)
-            ret = GLib.spawn_sync(None, [TERMINAL2, "{}{}".format(TERMINAL_ARG, _path)], None, GLib.SpawnFlags.DEFAULT, None, None)
-            if ret[0] == False:
-                AlDial(self_main, _lang.FAPPERROR)
+            if TERMINAL_ARG[-1] == "=":
+                subprocess.Popen([TERMINAL, "{}{}".format(TERMINAL_ARG,_path)])
+                # ret = GLib.spawn_sync(None, [TERMINAL2, "{}{}".format(TERMINAL_ARG, _path)], None, GLib.SpawnFlags.DEFAULT, None, None)
+            else:
+                subprocess.Popen([TERMINAL, TERMINAL_ARG, _path])
+                # ret = GLib.spawn_sync(None, [TERMINAL2, TERMINAL_ARG, _path], None, GLib.SpawnFlags.DEFAULT, None, None)
+            # if ret[0] == False:
+                # AlDial(self_main, _lang.FAPPERROR)
         except Exception as E:
             AlDial(self_main, str(E))
         
