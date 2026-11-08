@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.5 beta"
+VERSION = "0.9.6 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -287,7 +287,11 @@ def add_link_sfx(file_name_dst):
     ff = Gio.File.new_for_path(file_name_dst)
     qret = ff.query_exists(None)
     while qret:
-        file_name_dst += "_1"
+        z = datetime.datetime.now()
+        #dY, dM, dD, dH, dm, ds, dms
+        commSfx = "_{}.{}.{}_{}.{}.{}".format(z.year, z.month, z.day, z.hour, z.minute, z.second)
+        file_name_dst += commSfx
+        # file_name_dst += "_1"
         del ff
         ff = Gio.File.new_for_path(file_name_dst)
         qret = ff.query_exists(None)
@@ -296,7 +300,11 @@ def add_link_sfx(file_name_dst):
 def add_file_sfx(file_name_dst):
     _file_exists = os.path.exists(file_name_dst)
     while _file_exists:
-        _sfx = "_1"
+        z = datetime.datetime.now()
+        #dY, dM, dD, dH, dm, ds, dms
+        commSfx = "_{}.{}.{}_{}.{}.{}".format(z.year, z.month, z.day, z.hour, z.minute, z.second)
+        _sfx = commSfx
+        # _sfx = "_1"
         file_name_dst = file_name_dst+_sfx
         _file_exists = os.path.exists(file_name_dst)
     return file_name_dst
@@ -517,6 +525,63 @@ class CopyThread(Thread):
         else:
             self._signal.propList = ["COPY_DONE"]
         
+# def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite):
+    # if "" in path_source:
+        # path_source.remove("")
+    # if "\x00" in path_source:
+        # path_source.remove("\x00")
+    # if _object != None:
+        # #
+        # num_items = len(path_source)
+        # #
+        # _event = Event()
+        # #
+        # def signal_threadslot_c(_signal,_param,num_items):
+            # _list = _signal.propList[0]
+            # if _list[0] == "PULSE_COPY":
+                # _prev_value = _CD.prog_bar.get_fraction()
+                # _next_value = float(_prev_value+(1/num_items))
+                # _signal.propList = ["COPYD",[_list[1],_next_value]]
+            # elif _list[0] == "COPY_DONE":
+                # _CD.close_btn.set_sensitive(True)
+                # _CD.cancel_btn.set_sensitive(False)
+                # _signal.propList = ["COPYD_DONE",[_lang.DONE]]
+            # elif _list[0] == "COPY_ERROR":
+                # _CD.close_btn.set_sensitive(True)
+                # _CD.cancel_btn.set_sensitive(False)
+                # _signal.propList = ["COPYD_ERROR",[_lang.DONEWITHERRORS]]
+                # _CD.error_set = 1
+            # elif _list[0] == "COPY_ABORT":
+                # _CD.close_btn.set_sensitive(True)
+                # _CD.cancel_btn.set_sensitive(False)
+                # _signal.propList = ["COPYD_ABORT",[_lang.ABORTEDBYUSER]]
+        # _signalc = SignalObject()
+        # _signalc.connect("notify::propList", signal_threadslot_c, num_items)
+        # _CD = CopyDialog(self_main, _signalc, _event)
+        # #
+        # _object = Thread(target=CopyThread, args=(path_source,_dest,_operation,_signalc,_event,_overwrite), daemon=True)
+        # _object.start()
+        # #
+        # _CD.present()
+        # #
+        # return _object
+
+def CopyThread2(_d):
+    path_source,_dest,_operation,_signal,_event,_overwrite = _d
+    for ff in path_source:
+        if _event.is_set():
+            _signal.propList = ["COPY_ABORT"]
+            return
+        dest_path = os.path.join(_dest, os.path.basename(ff))
+        on_copy_file(dest_path, ff, _operation, _signal, _overwrite)
+        time.sleep(0.01)
+    #
+    if _errors != "":
+        _signal.propList = ["COPY_ERROR"]
+    else:
+        _signal.propList = ["COPY_DONE"]
+    return
+
 def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite):
     if "" in path_source:
         path_source.remove("")
@@ -551,8 +616,11 @@ def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_sam
         _signalc.connect("notify::propList", signal_threadslot_c, num_items)
         _CD = CopyDialog(self_main, _signalc, _event)
         #
-        _object = Thread(target=CopyThread, args=(path_source,_dest,_operation,_signalc,_event,_overwrite), daemon=True)
-        _object.start()
+        # _object = Thread(target=CopyThread, args=(path_source,_dest,_operation,_signalc,_event,_overwrite), daemon=True)
+        # _object.start()
+        ########
+        _object = GLib.Thread.new(None, CopyThread2, (path_source,_dest,_operation,_signalc,_event,_overwrite))
+        #######
         #
         _CD.present()
         #
@@ -923,40 +991,40 @@ class ItemBox(Gtk.Box):
         self._parent.is_inside = False
         return True
     
-class DeleteThread(Thread):
-    def __init__(self, path_source, _signal, _event):
-        self.path_source = path_source
-        self._signal = _signal
-        self._event = _event
-        self.run()
-        
-    def run(self):
-        global _errors
-        for ff in self.path_source:
-            time.sleep(0.01)
-            if self._event.is_set():
-                self._signal.propList = ["DELETE_ABORT"]
-                return
-            #
-            self._signal.propList = ["PULSE_COPY",os.path.basename(ff)]
-            mode = os.lstat(ff).st_mode
-            if stat.S_ISDIR(mode):
-                try:
-                    shutil.rmtree(ff)
-                except Exception as E:
-                    _errors += str(E)
-            elif stat.S_ISREG(mode) or stat.S_ISLNK(mode):
-                try:
-                    os.unlink(ff)
-                except Exception as E:
-                    _errors += str(E)
-            else:
-                _errors += "{}: {}".format(FILENOTSUPPORTED, os.path.basename(ff))
-        #
-        if _errors != "":
-            self._signal.propList = ["DELETE_ERROR"]
-        else:
-            self._signal.propList = ["DELETE_DONE"]
+# class DeleteThread(Thread):
+    # def __init__(self, path_source, _signal, _event):
+        # self.path_source = path_source
+        # self._signal = _signal
+        # self._event = _event
+        # self.run()
+        # 
+    # def run(self):
+        # global _errors
+        # for ff in self.path_source:
+            # time.sleep(0.01)
+            # if self._event.is_set():
+                # self._signal.propList = ["DELETE_ABORT"]
+                # return
+            # #
+            # self._signal.propList = ["PULSE_COPY",os.path.basename(ff)]
+            # mode = os.lstat(ff).st_mode
+            # if stat.S_ISDIR(mode):
+                # try:
+                    # shutil.rmtree(ff)
+                # except Exception as E:
+                    # _errors += str(E)
+            # elif stat.S_ISREG(mode) or stat.S_ISLNK(mode):
+                # try:
+                    # os.unlink(ff)
+                # except Exception as E:
+                    # _errors += str(E)
+            # else:
+                # _errors += "{}: {}".format(FILENOTSUPPORTED, os.path.basename(ff))
+        # #
+        # if _errors != "":
+            # self._signal.propList = ["DELETE_ERROR"]
+        # else:
+            # self._signal.propList = ["DELETE_DONE"]
 
 class OWD(Gtk.AppChooserDialog):
     def __init__(self, _parent, _file):
@@ -1363,10 +1431,42 @@ class WinPopover(Gtk.PopoverMenu):
             _signald.connect("notify::propList", signal_threadslot_d, num_items)
             _CD = CopyDialog(self_main, _signald, _eventd)
             #
-            _object = Thread(target=DeleteThread, args=(LIST_SELECTED,_signald,_eventd), daemon=True)
-            _object.start()
+            # _object = Thread(target=DeleteThread, args=(LIST_SELECTED,_signald,_eventd), daemon=True)
+            # _object.start()
+            #
+            _object = GLib.Thread.new(None, self.DeleteThread2, (LIST_SELECTED,_signald,_eventd))
             #
             _CD.present()
+    
+    def DeleteThread2(self, _d):
+        path_source, _signal, _event = _d
+        global _errors
+        for ff in path_source:
+            time.sleep(0.01)
+            if _event.is_set():
+                _signal.propList = ["DELETE_ABORT"]
+                return
+            #
+            _signal.propList = ["PULSE_COPY",os.path.basename(ff)]
+            mode = os.lstat(ff).st_mode
+            if stat.S_ISDIR(mode):
+                try:
+                    shutil.rmtree(ff)
+                except Exception as E:
+                    _errors += str(E)
+            elif stat.S_ISREG(mode) or stat.S_ISLNK(mode):
+                try:
+                    os.unlink(ff)
+                except Exception as E:
+                    _errors += str(E)
+            else:
+                _errors += "{}: {}".format(FILENOTSUPPORTED, os.path.basename(ff))
+        #
+        if _errors != "":
+            _signal.propList = ["DELETE_ERROR"]
+        else:
+            _signal.propList = ["DELETE_DONE"]
+        return
     
     # def on_trash(self, action, param, _a=None, _b=None):
         # # only home
@@ -3454,6 +3554,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         if not os.path.exists(_path) or not os.access(_path, os.R_OK):
             return None
         self._path = _path
+        print("3557", self._path)
         self._parent = _parent
         self.set_hexpand(True)
         self.set_vexpand(True)
@@ -3687,12 +3788,13 @@ class ScrolWin(Gtk.ScrolledWindow):
             img_il.set_halign(Gtk.Align.END)
             img_il.set_valign(Gtk.Align.START)
             _ol.add_overlay(img_il)
-        #
+        # scroll to item to select
         if _name[0] != ".":
             if self._parent.file_to_select != None:
                 if self._parent.file_to_select == _name:
-                    self._model.select_item(self.NUM_MOD_ITEMS-1, False)
+                    # self._model.select_item(self.NUM_MOD_ITEMS-1, False)
                     self._parent.file_to_select = None
+                    self.grid1.scroll_to(self.NUM_MOD_ITEMS-1, Gtk.ListScrollFlags.SELECT, None)
     
     def generate_thumb(self, box, _gfileinfo, _name, has_thumb):
         thumbnailerN = GnomeDesktop.DesktopThumbnailFactory.new(THUMBNAIL_SIZE)
@@ -3872,7 +3974,7 @@ class ScrolWin(Gtk.ScrolledWindow):
             ##########
             # exactly the same directory
             if os.path.dirname(files[0].get_path()) == self._path:
-                AlDial(self_main, "The same item already exists.")
+                AlDial(self_main, _lang.SAMEITEMEXIST)
                 return
             self.on_copy_cup_operation(files,self._path,_operation)
             return
