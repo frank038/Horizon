@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.6 beta"
+VERSION = "0.9.7 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -2699,8 +2699,8 @@ class MainWindow(Gtk.ApplicationWindow):
             if sw != None:
                 self._notebook.append_page(sw, sw.tab_label)
                 self._notebook.set_tab_reorderable(sw, True)
-        #
-        AlDial(self_main, "{}: {}".format(_lang.MOUNTUNMOUNTED, m_name))
+        # disabled
+        # AlDial(self_main, "{}: {}".format(_lang.MOUNTUNMOUNTED, m_name))
     
     # def on_mount_changed(self, _vm, _mount):
         # print("mount changed:: ", _mount.get_name())
@@ -3136,10 +3136,31 @@ class MainWindow(Gtk.ApplicationWindow):
     
     
 ######### PATH BAR
-    def on_folder_navigated(self, target_path):
+    def on_folder_navigated_OLD(self, target_path):
         self.trigger_path_update(target_path)
+        
+    def on_folder_navigated(self, target_path):
+        _sw = self._notebook.get_nth_page(self._notebook.get_current_page())
+        old_path = _sw._path
+        self.trigger_path_update(target_path, old_path)
     
-    def trigger_path_update(self, new_path):
+    def on_select_parent_folder(self, old_path):
+        _sw = self._notebook.get_nth_page(self._notebook.get_current_page())
+        _mod = _sw.grid1.get_model()
+        new_path = _sw._path
+        _n_items = _mod.get_n_items()
+        n_item_found = -1
+        for i in range(_n_items):
+            _fi = _mod.get_item(i)
+            if _fi.get_name() == old_path[len(new_path)+1:].split("/")[0]:
+                if os.path.exists(os.path.join(new_path,_fi.get_name())):
+                    n_item_found = i
+                break
+        if n_item_found > -1:
+            _sw.grid1.scroll_to(n_item_found, Gtk.ListScrollFlags.SELECT, None)
+        
+    
+    def trigger_path_update(self, new_path, old_path=None):
         self.path_bar.set_path(new_path)
         self.on_notebook_new_path(new_path)
         # 
@@ -3148,7 +3169,12 @@ class MainWindow(Gtk.ApplicationWindow):
             sw._label_tab.set_label(os.path.basename(new_path))
             self._lb1.unselect_all()
             sw.grid1.grab_focus()
-        
+        ####
+        # select parent folder
+        if old_path:
+            # GLib.idle_add(self.on_select_parent_folder, old_path, priority=GLib.PRIORITY_LOW)
+            GLib.timeout_add(100, self.on_select_parent_folder, old_path)
+            
 #########
 
     def update_filter(self, custom_filter, search_text):
@@ -3308,7 +3334,8 @@ class ScrolWinTrash(Gtk.ScrolledWindow):
         #
         self.on_liststore()
         #
-        self._multi = Gtk.MultiSelection.new(self._ls)
+        # self._multi = Gtk.MultiSelection.new(self._ls)
+        self._multi = Gtk.MultiSelection.new(None)
         self._tree = Gtk.ColumnView.new(self._multi)
         self._tree.set_reorderable(False)
         self._tree.set_hexpand(True)
@@ -3355,6 +3382,7 @@ class ScrolWinTrash(Gtk.ScrolledWindow):
         _factory.connect("bind", f_bind)
         #
         _colv.set_factory(_factory)
+        #
         self._tree.insert_column(0, _colv)
         ############
         _colv2 = Gtk.ColumnViewColumn.new(_lang.ORIGINALEPATH, None)
@@ -3404,8 +3432,24 @@ class ScrolWinTrash(Gtk.ScrolledWindow):
         _colv3.set_factory(_factory3)
         self._tree.insert_column(2, _colv3)
         #
+        ########### first column sorter
+        property_expression = Gtk.PropertyExpression.new(TData, None, "fakename")
+        _sorter = Gtk.StringSorter.new(property_expression)
+        _colv.set_sorter(_sorter)
+        ########### third column sorter
+        property_expression = Gtk.PropertyExpression.new(TData, None, "date")
+        _sorter = Gtk.StringSorter.new(property_expression)
+        _colv3.set_sorter(_sorter)
+        ##########
+        # with sorter
+        sorter = Gtk.ColumnView.get_sorter(self._tree)
+        self.sort_model = Gtk.SortListModel.new(self._ls, sorter)
+        self._multi.set_model(self.sort_model)
+        ###########
         self.swt.set_child(self._tree)
-        #
+        # first the latest deleted
+        self._tree.sort_by_column(_colv3, Gtk.SortType.DESCENDING)
+        ########
         this_dir = Gio.File.new_for_path(TRASHCAN_FILES_DIR)
         self.deleterestore_button_pressed = 0
         try:
@@ -3497,6 +3541,10 @@ class ScrolWinTrash(Gtk.ScrolledWindow):
             SimpleDialog(self_main, _lang.GERRORS, _errors)
     
     def on_emptytrash_btn(self, _w):
+        # _adj = self.get_hadjustment()
+        # # GLib.idle_add(lambda: _adj.set_value(_adj.props.lower))
+        # _adj.set_value(_adj.props.lower)
+        #
         ret = emptyTrash("HOME").tempty()
         if ret == 0:
             self._ls.remove_all()
@@ -3554,7 +3602,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         if not os.path.exists(_path) or not os.access(_path, os.R_OK):
             return None
         self._path = _path
-        print("3557", self._path)
+        # self.num_items_in_path = len([_file for _file in os.listdir(self._path) if not _file.startswith('.')])
         self._parent = _parent
         self.set_hexpand(True)
         self.set_vexpand(True)
@@ -3614,7 +3662,7 @@ class ScrolWin(Gtk.ScrolledWindow):
                     return False
             else:
                 return True
-                
+        
         custom_filter = Gtk.CustomFilter.new(filter_func)
         self._c_filter = custom_filter
         ###
@@ -3711,6 +3759,17 @@ class ScrolWin(Gtk.ScrolledWindow):
         _st = Gtk.ShortcutTrigger.parse_string("<Control>t")
         _sc = Gtk.Shortcut.new(_st, _ca)
         self._ctrl.add_shortcut(_sc)
+        #
+        self.item_to_select = None
+        self.connect("realize",self.on_realized)
+    
+    def on_realized(self, _w):
+        GLib.idle_add(self.on_realized_f)
+         
+    def on_realized_f(self):
+        if self.item_to_select != None:
+            self.grid1.scroll_to(self.item_to_select, Gtk.ListScrollFlags.SELECT, None)
+            self.item_to_select = None
     
     def on_terminal(self, action, param, _path=None, _a=None, _b=None):
         # if isinstance(_a, Gtk.Popover):
@@ -3792,10 +3851,12 @@ class ScrolWin(Gtk.ScrolledWindow):
         if _name[0] != ".":
             if self._parent.file_to_select != None:
                 if self._parent.file_to_select == _name:
-                    # self._model.select_item(self.NUM_MOD_ITEMS-1, False)
+                    # # self._model.select_item(self.NUM_MOD_ITEMS-1, False)
                     self._parent.file_to_select = None
-                    self.grid1.scroll_to(self.NUM_MOD_ITEMS-1, Gtk.ListScrollFlags.SELECT, None)
-    
+                    # self.grid1.scroll_to(self.NUM_MOD_ITEMS-1, Gtk.ListScrollFlags.SELECT, None)
+                    self.item_to_select = self.NUM_MOD_ITEMS-1
+        # self.NUM_MOD_ITEMS -= 1
+        
     def generate_thumb(self, box, _gfileinfo, _name, has_thumb):
         thumbnailerN = GnomeDesktop.DesktopThumbnailFactory.new(THUMBNAIL_SIZE)
         tf = Gio.File.new_for_path(os.path.join(self._path, _name))
@@ -4091,6 +4152,8 @@ class RestoreTrash():
             fake_name = iitem.fakename
             real_name = os.path.basename(iitem.name) # has full path from home folder
             file_full_path = os.path.join(_HOME, iitem.name)
+            if not os.path.exists(os.path.dirname(file_full_path)):
+                file_full_path = os.path.join(_HOME, iitem.name.split("/")[-1])
             ret = os.path.exists(file_full_path)
             if ret:
                 file_full_path = self.setNewname(file_full_path)
