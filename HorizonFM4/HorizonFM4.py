@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.7 beta"
+VERSION = "0.9.8 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -501,29 +501,29 @@ def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None, _overwri
         
 import time
 # 
-class CopyThread(Thread):
-    def __init__(self, path_source,_dest,_operation, _signal, _event, _overwrite):
-        self.path_source = path_source
-        self._dest = _dest
-        self._operation = _operation
-        self._signal = _signal
-        self._event = _event
-        self._overwrite = _overwrite
-        self.run()
-        
-    def run(self):
-        for ff in self.path_source:
-            if self._event.is_set():
-                self._signal.propList = ["COPY_ABORT"]
-                return
-            dest_path = os.path.join(self._dest, os.path.basename(ff))
-            on_copy_file(dest_path, ff, self._operation, self._signal, self._overwrite)
-            time.sleep(0.01)
-        #
-        if _errors != "":
-            self._signal.propList = ["COPY_ERROR"]
-        else:
-            self._signal.propList = ["COPY_DONE"]
+# class CopyThread(Thread):
+    # def __init__(self, path_source,_dest,_operation, _signal, _event, _overwrite):
+        # self.path_source = path_source
+        # self._dest = _dest
+        # self._operation = _operation
+        # self._signal = _signal
+        # self._event = _event
+        # self._overwrite = _overwrite
+        # self.run()
+        # 
+    # def run(self):
+        # for ff in self.path_source:
+            # if self._event.is_set():
+                # self._signal.propList = ["COPY_ABORT"]
+                # return
+            # dest_path = os.path.join(self._dest, os.path.basename(ff))
+            # on_copy_file(dest_path, ff, self._operation, self._signal, self._overwrite)
+            # time.sleep(0.01)
+        # #
+        # if _errors != "":
+            # self._signal.propList = ["COPY_ERROR"]
+        # else:
+            # self._signal.propList = ["COPY_DONE"]
         
 # def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite):
     # if "" in path_source:
@@ -1232,8 +1232,8 @@ class WinPopover(Gtk.PopoverMenu):
             _list_dir = os.listdir(SCRIPTS_DIRECTORY)
             for el in _list_dir:
                 if os.access(os.path.join(SCRIPTS_DIRECTORY,el), os.X_OK):
-                    self.file_menu.append(el, 'win.{}'.format(el))
-                    btn_script = Gio.SimpleAction(name=el, parameter_type=None, enabled=True)
+                    self.file_menu.append(el, 'win.{}'.format(el.replace(" ","_")))
+                    btn_script = Gio.SimpleAction(name=el.replace(" ","_"), parameter_type=None, enabled=True)
                     btn_script.connect("activate", self.on_script, os.path.join(SCRIPTS_DIRECTORY,el))
                     action_group.add_action(btn_script)
         # property dialog
@@ -1322,7 +1322,8 @@ class WinPopover(Gtk.PopoverMenu):
         for el in self._parent.SELECTED_ITEMS:
             _list += os.path.join(_path, el)+"\n"
         try:
-            subprocess.run([_script, "{}".format(_list)])
+            # subprocess.run([_script, "{}".format(_list)])
+            subprocess.Popen([_script, "{}".format(_list)])
             # ret = GLib.spawn_sync(None, [_script, "{}".format(_list), "&"], None, GLib.SpawnFlags.DEFAULT, None, None)
             # if ret[0] == False:
                 # AlDial(self_main, _lang.FAPPERROR)
