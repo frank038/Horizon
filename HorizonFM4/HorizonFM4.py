@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.8 beta"
+VERSION = "0.9.9 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -603,15 +603,18 @@ def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_sam
                 _CD.close_btn.set_sensitive(True)
                 _CD.cancel_btn.set_sensitive(False)
                 _signal.propList = ["COPYD_DONE",[_lang.DONE]]
+                self_main.trigger_path_update(_dest)
             elif _list[0] == "COPY_ERROR":
                 _CD.close_btn.set_sensitive(True)
                 _CD.cancel_btn.set_sensitive(False)
                 _signal.propList = ["COPYD_ERROR",[_lang.DONEWITHERRORS]]
                 _CD.error_set = 1
+                self_main.trigger_path_update(_dest)
             elif _list[0] == "COPY_ABORT":
                 _CD.close_btn.set_sensitive(True)
                 _CD.cancel_btn.set_sensitive(False)
                 _signal.propList = ["COPYD_ABORT",[_lang.ABORTEDBYUSER]]
+                self_main.trigger_path_update(_dest)
         _signalc = SignalObject()
         _signalc.connect("notify::propList", signal_threadslot_c, num_items)
         _CD = CopyDialog(self_main, _signalc, _event)
@@ -3778,8 +3781,10 @@ class ScrolWin(Gtk.ScrolledWindow):
         if _path and os.path.exists(_path):
             _path = _path
         else:
-            if len(self.SELECTED_ITEMS) == 1:
-                _path = os.path.join(self._path, self.SELECTED_ITEMS[0])
+            if len(self.SELECTED_ITEMS) > 0:
+                _path = _path = os.path.join(self._path, self.SELECTED_ITEMS[0])
+                if not os.path.isdir(_path):
+                    _path = os.path.dirname(_path)
             elif len(self.SELECTED_ITEMS) == 0:
                 _path = self._path
         try:
