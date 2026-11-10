@@ -1,0 +1,5 @@
+#!/bin/bash
+
+string_converted=$(printf "%b" "$1")
+readarray -t file_array <<< "$string_converted"
+file-roller -h "${file_array[@]}"
