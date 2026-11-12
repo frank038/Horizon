@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.9 beta"
+VERSION = "0.9.10 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -603,18 +603,18 @@ def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_sam
                 _CD.close_btn.set_sensitive(True)
                 _CD.cancel_btn.set_sensitive(False)
                 _signal.propList = ["COPYD_DONE",[_lang.DONE]]
-                self_main.trigger_path_update(_dest)
+                # self_main.trigger_path_update(_dest)
             elif _list[0] == "COPY_ERROR":
                 _CD.close_btn.set_sensitive(True)
                 _CD.cancel_btn.set_sensitive(False)
                 _signal.propList = ["COPYD_ERROR",[_lang.DONEWITHERRORS]]
                 _CD.error_set = 1
-                self_main.trigger_path_update(_dest)
+                # self_main.trigger_path_update(_dest)
             elif _list[0] == "COPY_ABORT":
                 _CD.close_btn.set_sensitive(True)
                 _CD.cancel_btn.set_sensitive(False)
                 _signal.propList = ["COPYD_ABORT",[_lang.ABORTEDBYUSER]]
-                self_main.trigger_path_update(_dest)
+                # self_main.trigger_path_update(_dest)
         _signalc = SignalObject()
         _signalc.connect("notify::propList", signal_threadslot_c, num_items)
         _CD = CopyDialog(self_main, _signalc, _event)
@@ -1140,7 +1140,9 @@ class WinPopover(Gtk.PopoverMenu):
                 fapps = app_items[0]
                 is_default = app_items[1]
                 # gio.appinfo
-                is_default_name = is_default.get_display_name()
+                is_default_name = None
+                if is_default != None:
+                    is_default_name = is_default.get_display_name()
                 for fapp in fapps:
                     if isinstance(is_default, Gio.AppInfo):
                         _label = fapp.get_display_name().split("_")[0]
@@ -1545,6 +1547,7 @@ class PropertyDialog(Gtk.Window):
         self.headerbar.set_show_title_buttons(False)
         #
         self.apply_btn = Gtk.Button(label=_lang.APPLY)
+        self.apply_btn.set_css_classes(["suggested-action",""])
         self.apply_btn.connect("clicked", self.on_apply)
         #
         self.close_btn = Gtk.Button(label=_lang.CLOSE)
@@ -4442,6 +4445,7 @@ class WinSettings(Gtk.Window):
         self.stack_box.append(self.stack_sidebar)
         #
         btn_apply = Gtk.Button(label=_lang.APPLY)
+        btn_apply.set_css_classes(["suggested-action",""])
         btn_apply.connect("clicked", self.on_apply)
         self.headerbar.pack_start(btn_apply)
         #
