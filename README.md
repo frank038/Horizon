@@ -13,7 +13,7 @@ Features:
 - recycle bin
 - manages mass storage devices
 - bookmarks: drag and drop any folder; right mouse click to remove them
-- custom scripts (the selected items are passed as argument: each item is separated by a newline, and the list terminates with a newline)
+- custom scripts (the selected items are passed as argument: each item is separated by a newline, and the list terminates with a newline): support for file-roller archive manager
 - drag and drop support
 - some shortcuts
 - a separated language file, very easy to modify or translate into your language; the right file is automatically loaded if found: the file must be in the form LOCALE_OF_YOUR_LANGUAGE.py; if any is found the default en.py will be used
