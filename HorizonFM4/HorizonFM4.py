@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.10 beta"
+VERSION = "0.9.11 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -583,9 +583,9 @@ def CopyThread2(_d):
     return
 
 def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite):
-    if "" in path_source:
+    if "" in path_source[:]:
         path_source.remove("")
-    if "\x00" in path_source:
+    if "\x00" in path_source[:]:
         path_source.remove("\x00")
     if _object != None:
         #
@@ -1285,7 +1285,9 @@ class WinPopover(Gtk.PopoverMenu):
         sw = ScrolWin(item_path, self._parent._parent)
         sw.grid1.grab_focus()
         if sw != None:
-            idx = self._parent._parent._notebook.append_page(sw, sw.tab_label)
+            idx_current_page = self._parent._parent._notebook.get_current_page()
+            # idx = self._parent._parent._notebook.append_page(sw, sw.tab_label)
+            idx = self._parent._parent._notebook.insert_page(sw, sw.tab_label, idx_current_page+1)
             self._parent._parent._notebook.set_tab_reorderable(sw, True)
             self._parent._parent._notebook.set_current_page(idx)
         
@@ -2157,6 +2159,7 @@ class RenDialog(Gtk.Window):
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.set_child(self.box)
         #
+        _end_pos = 0
         if self._type == 1 or self._type == 2:
             lbl = Gtk.Label(label=self._str1)
             self.box.append(lbl)
@@ -2170,6 +2173,10 @@ class RenDialog(Gtk.Window):
                 self.dir_path = self._item._path
                 self.item_name = self._item.item_name
                 self._entry.get_buffer().set_text(self.item_name, -1)
+                # select only the text of files just before the last char "."
+                if os.path.isfile(os.path.join(self.dir_path, self.item_name)):
+                    _text_to_select = ".".join(self.item_name.split(".")[:-1])
+                    _end_pos = len(_text_to_select)
             #
             self.msg_lbl = Gtk.Label(label=_lang.CHOSEOTHERNAME)
             self.msg_lbl.set_visible(False)
@@ -2192,6 +2199,9 @@ class RenDialog(Gtk.Window):
         self.present()
         self._entry.connect("activate", self.on_activate)
         self._entry.grab_focus()
+        if _end_pos != 0:
+            self._entry.select_region(0, _end_pos)
+            _end_pos = 0
         self._entry.get_buffer().connect("inserted-text", self.on_entry)
         self._entry.get_buffer().connect("deleted-text", self.on_entry)
         
@@ -3123,6 +3133,13 @@ class MainWindow(Gtk.ApplicationWindow):
     
     def on_notebook_tab_changed(self, notebook, page, page_num):
         self.path_bar.set_path(page._path, 1)
+        # restore the scrolledwindow position after change back the page
+        _adj = page.get_vadjustment()
+        _val = _adj.get_value()
+        GLib.idle_add(self.restore_page_scroll_position, _adj, _val)
+    
+    def restore_page_scroll_position(self, _adj, _pos):
+        _adj.set_value(_pos)
     
     def on_about_action_actived(self, action, param=None):
         _aboutdial = Gtk.AboutDialog.new()
@@ -4024,7 +4041,8 @@ class ScrolWin(Gtk.ScrolledWindow):
         for ff in _source:
             path_source.append(ff.get_path())
         thread_object = object
-        _thread = copy_file_function(path_source,_dest,_operation, None, None, thread_object, 0)
+        # _thread = 
+        copy_file_function(path_source,_dest,_operation, None, None, thread_object, 0)
     
     def on_drop(self, ctrl, value, _x, _y):
         _operation = ""
@@ -4035,7 +4053,6 @@ class ScrolWin(Gtk.ScrolledWindow):
         
         if _operation == "":
             return
-        
         # external item moving
         if isinstance(value, Gdk.FileList) and value != []:
             files = value.get_files()
