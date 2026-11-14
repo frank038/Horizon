@@ -1365,13 +1365,13 @@ class WinPopover(Gtk.PopoverMenu):
                     ITEM_SELECTED.append(f_info)
             #
             if len(ITEM_SELECTED) > 0:# and item_not_readable == 0:
-                PropertyDialog(self, ITEM_SELECTED)
+                PropertyDialog(self, ITEM_SELECTED, item_not_readable)
                 # self._parent._parent.on_property_dialog(ITEM_SELECTED, self._parent)
             else:
                 AlDial(self_main, _lang.ITEMSNOTREADABLE)
         elif self._type == -99:
             current_path = self._parent._notebook.get_nth_page(self._parent._notebook.get_current_page())._path
-            PropertyDialog(self, current_path)
+            PropertyDialog(self, current_path, None)
         
     def on_copy(self, action, param, _type):
         self.popdown()
@@ -1534,10 +1534,11 @@ class WinPopover(Gtk.PopoverMenu):
     
 
 class PropertyDialog(Adw.Dialog):
-    def __init__(self, _parent, _list):
+    def __init__(self, _parent, _list, item_not_readable=None):
         super().__init__()
         self._parent = _parent
         self._list = _list
+        self.item_not_readable = item_not_readable
         # if isinstance(self._list, list):
             # self.set_transient_for(self._parent._parent._parent)
         # elif isinstance(self._list, str):
@@ -1590,7 +1591,8 @@ class PropertyDialog(Adw.Dialog):
                 self.total_num_items = 0
                 if os.path.isdir(self.file_path) and not os.path.islink(self.file_path):
                     self.has_dir = 1
-                    file_size = self.get_size(self.file_path)
+                    if os.access(self.file_path, os.R_OK) and os.access(self.file_path, os.X_OK):
+                        file_size = self.get_size(self.file_path)
                 elif not os.path.islink(self.file_path):
                     file_size = gfile.get_size()
                     self.total_num_items += 1
@@ -1773,7 +1775,8 @@ class PropertyDialog(Adw.Dialog):
                     try:
                         if os.path.isdir(self.file_path) and not os.path.islink(self.file_path):
                             self.has_dir += 1
-                            list_size += self.get_size(self.file_path)
+                            if os.access(self.file_path, os.R_OK) and os.access(self.file_path, os.X_OK):
+                                list_size += self.get_size(self.file_path)
                         elif not os.path.islink(self.file_path):
                             list_size += el.get_size()
                             self.total_num_items += 1
@@ -1904,7 +1907,10 @@ class PropertyDialog(Adw.Dialog):
                 fp = os.path.join(dirpath, f)
                 # skip if it is symbolic link
                 if not os.path.islink(fp):
-                    total_size += os.path.getsize(fp)
+                    try:
+                        total_size += os.path.getsize(fp)
+                    except:
+                        pass
                     if f[0] == ".":
                         self.total_num_items_hiddens += 1
         return total_size
