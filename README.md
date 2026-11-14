@@ -5,7 +5,7 @@ May have some unknown issues.
 
 Requirements:
 - python3
-- Gtk4 (and Adwaita)
+- Gtk4
 - Udisks
 - GnomeDesktop (for thumbnailers)
 
