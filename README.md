@@ -5,7 +5,7 @@ May have some unknown issues.
 
 Requirements:
 - python3
-- Gtk4
+- Gtk4 (and Adwaita)
 - Udisks
 - GnomeDesktop (for thumbnailers)
 
@@ -21,6 +21,8 @@ Features:
 - very small, uses only the most common python stuff
 - has a graphical setting application for all the supported options
 - modern visual thanks to the Gtk4 toolkit.
+
+Note: the icon icon_horizon.svg must be copied in /usr/share/pixmap folder.
 
 Behaviour: the thumbnails are generated and/or loaded in sync mode, that means they are all generated before the files and folders will appear.
 
