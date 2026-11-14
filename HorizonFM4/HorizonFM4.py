@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.11 beta"
+VERSION = "0.9.12 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -1638,7 +1638,7 @@ class PropertyDialog(Gtk.Window):
                 box_frame1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
                 _frame1.set_child(box_frame1)
                 #
-                access_dt = gfile.get_access_date_time().format("%x %X")
+                access_dt = gfile.get_access_date_time().to_local().format("%x %X")
                 access_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
                 access_box.set_hexpand(True)
                 access_lbl = Gtk.Label(label="<i>{} </i>".format(_lang.ACCESS))
@@ -1651,7 +1651,7 @@ class PropertyDialog(Gtk.Window):
                 access_box.append(access_lbl2)
                 box_frame1.append(access_box)
                 # 
-                modified_dt = gfile.get_modification_date_time().format("%x %X")
+                modified_dt = gfile.get_modification_date_time().to_local().format("%x %X")
                 modified_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
                 modified_box.set_hexpand(True)
                 modified_lbl = Gtk.Label(label="<i>{} </i>".format(_lang.MODIFICATION))
@@ -1664,7 +1664,7 @@ class PropertyDialog(Gtk.Window):
                 modified_box.append(modified_lbl2)
                 box_frame1.append(modified_box)
                 # 
-                creation_dt = gfile.get_creation_date_time().format("%x %X")
+                creation_dt = gfile.get_creation_date_time().to_local().format("%x %X")
                 creation_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
                 creation_box.set_hexpand(True)
                 creation_lbl = Gtk.Label(label="<i>{} </i>".format(_lang.CREATION))
@@ -2254,7 +2254,7 @@ class RenDialog(Gtk.Window):
 
 ##########
 ATTRIBUTES = ",".join((
-    "standard::name", "standard::display-name", "standard::icon", "standard::symbolic-icon",
+    "standard::name", "standard::display-name", "standard::icon", "standard::symbolic-icon", "access::can-execute",
     "standard::type", "standard::is-symlink", "standard::is-hidden", "standard::is-backup", "standard::content-type",
     "standard::size", "standard::target-uri", "time::modified", "time::created", "time::access", "access::can-write",
     "thumbnail::path", "thumbnail::failed", "xattr::xdg.tags"))
@@ -3866,13 +3866,23 @@ class ScrolWin(Gtk.ScrolledWindow):
             box.icon.set_from_gicon(_icon)
         #
         if _gfileinfo.get_is_symlink():
-            if icon_theme.has_icon("link"):
-                _il = icon_theme.lookup_icon("link", [], LINK_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_REGULAR)
+            # if icon_theme.has_icon("link"):
+            _il = icon_theme.lookup_icon("emblem-symbolic-link", ["emblem-link", "link"], LINK_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_REGULAR)
             img_il = Gtk.Image.new_from_paintable(_il)
             img_il.set_pixel_size(LINK_ICON_SIZE)
             img_il.set_halign(Gtk.Align.END)
             img_il.set_valign(Gtk.Align.START)
             _ol.add_overlay(img_il)
+        #
+        if _gfileinfo.get_file_type() == Gio.FileType.DIRECTORY:# info.get_file_type() in (Gio.FileType.DIRECTORY, Gio.FileType.MOUNTABLE)
+            can_execute = _gfileinfo.get_attribute_boolean(Gio.FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE)
+            if can_execute == False:
+                _il = icon_theme.lookup_icon("emblem-unreadable", ["emblem-locked", "dialog-password", "changes-prevent", "stop", "close"], LINK_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_REGULAR)
+                img_il = Gtk.Image.new_from_paintable(_il)
+                img_il.set_pixel_size(LINK_ICON_SIZE)
+                img_il.set_halign(Gtk.Align.START)
+                img_il.set_valign(Gtk.Align.START)
+                _ol.add_overlay(img_il)
         # scroll to item to select
         if _name[0] != ".":
             if self._parent.file_to_select != None:
@@ -3887,7 +3897,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         thumbnailerN = GnomeDesktop.DesktopThumbnailFactory.new(THUMBNAIL_SIZE)
         tf = Gio.File.new_for_path(os.path.join(self._path, _name))
         _uri = tf.get_uri()
-        _mtime = _gfileinfo.get_modification_date_time().to_unix()
+        _mtime = _gfileinfo.get_modification_date_time().to_local().to_unix()
         # can be None or str
         _thumb_path = thumbnailerN.lookup(_uri, _mtime)
         #
