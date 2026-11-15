@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.51 beta"
+VERSION = "0.9.52 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -205,6 +205,9 @@ class CopyDialog(Adw.Dialog):
         self._signal = _signal
         self._signal.connect("notify::propList", self.signal_threadslot)
         self._event = _event
+        self.set_margin_start(4)
+        self.set_margin_end(4)
+        self.set_margin_bottom(4)
         #
         self.set_name("copydialog")
         self.set_size_request(DWIDTH, 10)
@@ -703,7 +706,7 @@ class ItemBox(Gtk.Box):
         self._parent = _parent
         self._item = _item # gtk.listitem
         self.item_name = None
-        
+        #
         def on_sel(__item, __gparam, c=None):
             # it is none when change path
             item_to_add = self
@@ -722,12 +725,24 @@ class ItemBox(Gtk.Box):
         #
         self.set_orientation(Gtk.Orientation.VERTICAL)
         self.set_spacing(BOX_INTERNAL_SPACING)
-        self.set_size_request(BOX_SIZE_W,BOX_SIZE_H)
+        # self.set_size_request(BOX_SIZE_W,BOX_SIZE_H)
+        self.set_size_request(max(BOX_SIZE_W, ICON_SIZE+LINK_ICON_SIZE*2),BOX_SIZE_H)
         #
         icon = Gtk.Image.new()
         icon.set_pixel_size(ICON_SIZE)
         self.icon = icon
-        self.append(icon)
+        #
+        ol_box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL,0)
+        ol_box.set_size_request(ICON_SIZE+LINK_ICON_SIZE*2,ICON_SIZE)
+        ol_box.set_halign(Gtk.Align.CENTER)
+        self.append(ol_box)
+        #
+        self.icon_ol = Gtk.Overlay.new()
+        self.icon_ol.set_hexpand(False)
+        self.icon_ol.set_vexpand(False)
+        self.icon_ol.set_child(icon)
+        self.icon_ol.set_size_request(ICON_SIZE+LINK_ICON_SIZE*2,ICON_SIZE)
+        ol_box.append(self.icon_ol)
         #
         self.lbl = Gtk.Label(wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, lines=3, max_width_chars=12,
                         ellipsize=Pango.EllipsizeMode.MIDDLE, justify=Gtk.Justification.CENTER,
@@ -770,9 +785,9 @@ class ItemBox(Gtk.Box):
         self.drop_controller.connect("drop", self.on_drop)
         self.add_controller(self.drop_controller)
         
-    def on_get_symlink(self):
-        if self._item.get_item() != None:
-            print("IS SYMLINK ITEMBOX:: ", self._item.get_item().get_is_symlink())
+    # def on_get_symlink(self):
+        # if self._item.get_item() != None:
+            # print("IS SYMLINK ITEMBOX:: ", self._item.get_item().get_is_symlink())
     
     def on_gesture_r(self, o,n,x,y):
         num_items = 0
@@ -1546,6 +1561,9 @@ class PropertyDialog(Adw.Dialog):
         self.set_name("propertydialog")
         #
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.box.set_margin_start(6)
+        self.box.set_margin_end(6)
+        self.box.set_margin_bottom(6)
         self.set_child(self.box)
         self.box.append(self.headerbar)
         #
@@ -1599,12 +1617,18 @@ class PropertyDialog(Adw.Dialog):
                 if gfile.get_is_symlink():
                     type_lbl.set_label("<i>"+_lang.ITEMTYPE+"</i> "+_lang.LINKTYPE)
                     type_lbl.set_use_markup(True)
+                    type_lbl.set_wrap(True)
+                    type_lbl.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+                    type_lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
                     link_to = os.readlink(self.file_path)
                     link_lbl = Gtk.Label(label="("+link_to+")")
                     link_lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
                     prop_box.append(link_lbl)
                 else:
                     type_lbl.set_label("<i>"+_lang.ITEMTYPE+"</i> "+file_type)
+                    type_lbl.set_wrap(True)
+                    type_lbl.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+                    type_lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
                     type_lbl.set_use_markup(True)
                 #
                 if os.path.isdir(self.file_path) and not os.path.islink(self.file_path):
@@ -2095,6 +2119,9 @@ class SimpleDialog(Adw.Dialog):
         self._parent = _parent
         self._str1 = _str1
         self._str2 = _str2
+        self.set_margin_start(4)
+        self.set_margin_end(4)
+        self.set_margin_bottom(4)
         #
         self.set_name("simpledialog")
         self.set_size_request(DWIDTH, 10)
@@ -2142,6 +2169,9 @@ class RenDialog(Adw.Dialog):
         self._type = _type
         self._str1 = _str1
         self._item = _item
+        self.set_margin_start(4)
+        self.set_margin_end(4)
+        self.set_margin_bottom(4)
         #
         self.set_name("renamedialog")
         self.set_size_request(DWIDTH, 10)
@@ -3163,11 +3193,11 @@ class MainWindow(Adw.ApplicationWindow):
     def on_quit_action_actived(self, action, param=None):
         self.app_.quit()
     
-    def on_property_dialog(self, ITEM_SELECTED, _sw):
-        self.prop_dlg = Adw.Dialog.new()
-        # new_dlg.set_size_request(500,10)
-        self.prop_dlg.set_can_close(True)
-        self.prop_dlg.present(self)
+    # def on_property_dialog(self, ITEM_SELECTED, _sw):
+        # self.prop_dlg = Adw.Dialog.new()
+        # # new_dlg.set_size_request(500,10)
+        # self.prop_dlg.set_can_close(True)
+        # self.prop_dlg.present(self)
     
     def get_size(self, start_path):
         total_size = 0
@@ -4003,18 +4033,20 @@ class ScrolWin(Gtk.ScrolledWindow):
     
     def f_setup(self, fact, item):
         box = ItemBox(self, item)
+        item.set_child(box)
         ######
-        _ol = Gtk.Overlay.new()
-        _ol.set_hexpand(True)
-        _ol.set_vexpand(True)
-        _ol.set_child(box)
-        item.set_child(_ol)
-        _ol.box = box
+        # _ol = Gtk.Overlay.new()
+        # _ol.set_hexpand(True)
+        # _ol.set_vexpand(True)
+        # _ol.set_child(box)
+        # item.set_child(_ol)
+        # _ol.box = box
         self.NUM_MOD_ITEMS += 1
     
     def f_bind(self, _f, item):
-        _gfileinfo, box = item.get_item(), item.get_child().box
-        _ol = item.get_child()
+        _gfileinfo, box = item.get_item(), item.get_child()#.box
+        # _ol = item.get_child()
+        _ol = box.icon_ol
         _name = _gfileinfo.get_name()
         box.lbl.set_label(_name)
         box.item_name = _name
@@ -4040,7 +4072,7 @@ class ScrolWin(Gtk.ScrolledWindow):
             img_il = Gtk.Image.new_from_paintable(_il)
             img_il.set_pixel_size(LINK_ICON_SIZE)
             img_il.set_halign(Gtk.Align.END)
-            img_il.set_valign(Gtk.Align.START)
+            img_il.set_valign(Gtk.Align.END)
             _ol.add_overlay(img_il)
         #
         if _gfileinfo.get_file_type() == Gio.FileType.DIRECTORY:# info.get_file_type() in (Gio.FileType.DIRECTORY, Gio.FileType.MOUNTABLE)
@@ -4050,7 +4082,7 @@ class ScrolWin(Gtk.ScrolledWindow):
                 img_il = Gtk.Image.new_from_paintable(_il)
                 img_il.set_pixel_size(LINK_ICON_SIZE)
                 img_il.set_halign(Gtk.Align.START)
-                img_il.set_valign(Gtk.Align.START)
+                img_il.set_valign(Gtk.Align.END)
                 _ol.add_overlay(img_il)
         # scroll to item to select
         if _name[0] != ".":
@@ -4066,7 +4098,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         thumbnailerN = GnomeDesktop.DesktopThumbnailFactory.new(THUMBNAIL_SIZE)
         tf = Gio.File.new_for_path(os.path.join(self._path, _name))
         _uri = tf.get_uri()
-        _mtime_tmp = _gfileinfo.get_modification_date_time()
+        _mtime_tmp = _gfileinfo.get_modification_date_time().to_local()
         if _mtime_tmp == None:
             return
         _mtime = _mtime_tmp.to_local().to_unix()
@@ -4629,10 +4661,13 @@ class WinSettings(Adw.Dialog):
         self.headerbar.set_show_title_buttons(False)
         #
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        self.main_box.set_margin_start(6)
+        self.main_box.set_margin_end(6)
+        self.main_box.set_margin_bottom(6)
         self.set_child(self.main_box)
         self.main_box.append(self.headerbar)
         #
-        self.stack_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.stack_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         self.main_box.append(self.stack_box)
         #
         self.stack_sidebar = Gtk.StackSidebar.new()
