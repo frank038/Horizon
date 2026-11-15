@@ -640,9 +640,9 @@ def copy_file_function(path_source,_dest,_operation,_event,_signal,_object,_same
         def dialog_action(_obj, _res, _data):
             # 0 yes overwrite - 1 no backup
             _result = _obj.choose_finish(_res)
-            if _result == 0:
+            if _result == "0":
                 copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite=1)
-            elif _result == 1:
+            elif _result == "1":
                 copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_same_item,_overwrite=0)
         _OB.choose(self_main, None, dialog_action, _result)
     else:
@@ -651,7 +651,7 @@ def copy_file_function(path_source,_dest,_operation,_event,_signal,_object,_same
 ##############
 
 # overwrite/backup dialog
-class OBDial(Gtk.AlertDialog):
+class OBDial(Adw.AlertDialog):
     def __init__(self, _parent, _data):
         super().__init__()
         self._parent = _parent
@@ -659,11 +659,10 @@ class OBDial(Gtk.AlertDialog):
         self._str1 = _lang.FILEOVERWRITE+"?"
         self._str2 = _lang.FILEWITHBACKUP
         #
-        self.set_buttons([_lang.YES, _lang.NO])
-        self.props.cancel_button = 1
-        #
-        self.set_message(self._str1)
-        self.set_detail(self._str2)
+        self.add_response("0", _lang.YES)
+        self.add_response("1", _lang.NO)
+        self.set_heading(self._str1)
+        self.set_body(self._str2)
 
 def on_app_activated(_w, _appinfo, _ff, _APP):
     _appinfo.launch([_ff], None)
