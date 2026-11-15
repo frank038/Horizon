@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.50 beta"
+VERSION = "0.9.51 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -206,11 +206,6 @@ class CopyDialog(Adw.Dialog):
         self._signal.connect("notify::propList", self.signal_threadslot)
         self._event = _event
         #
-        # self.set_transient_for(self._parent)
-        # self.set_modal(True)
-        # self.set_titlebar(Gtk.Box.new(0,0))
-        # self.set_destroy_with_parent(True)
-        # self.set_resizable(False)
         self.set_name("copydialog")
         self.set_size_request(DWIDTH, 10)
         self.error_set = 0
@@ -237,8 +232,6 @@ class CopyDialog(Adw.Dialog):
         box_btn.append(self.close_btn)
         self.close_btn.connect("clicked", self.on_close_btn)
         self.close_btn.set_sensitive(False)
-        #
-        # self.present(self._parent)
         
     def signal_threadslot(self, _signal, _param):
         _list = _signal.propList[0]
@@ -1402,7 +1395,7 @@ class WinPopover(Gtk.PopoverMenu):
     def dialog_action(self, _obj, _res, _data=None):
         _result = _obj.choose_finish(_res)
         self._value = _result
-        if _result == 1:
+        if _result == "1":
             return
         #
         LIST_SELECTED = []
@@ -1539,17 +1532,8 @@ class PropertyDialog(Adw.Dialog):
         self._parent = _parent
         self._list = _list
         self.item_not_readable = item_not_readable
-        # if isinstance(self._list, list):
-            # self.set_transient_for(self._parent._parent._parent)
-        # elif isinstance(self._list, str):
-            # self.set_transient_for(self._parent._parent)
-        # self.set_modal(True)
-        # self.set_title(_lang.PROPERTY)
-        # self.set_resizable(True)
-        # self.set_default_size(PDWIDTH, 100)
-        # 
+        #
         self.headerbar = Gtk.HeaderBar.new()
-        # self.set_titlebar(self.headerbar)
         self.headerbar.set_show_title_buttons(False)
         #
         self.apply_btn = Gtk.Button(label=_lang.APPLY)
@@ -1560,8 +1544,6 @@ class PropertyDialog(Adw.Dialog):
         self.close_btn.connect("clicked", self.on_close)
         self.headerbar.pack_end(self.close_btn)
         #
-        # self.set_destroy_with_parent(True)
-        # self.set_resizable(False)
         self.set_name("propertydialog")
         #
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -2063,23 +2045,22 @@ class PropertyDialog(Adw.Dialog):
         
         
 # yes/no dialog - delete items
-class YNDial(Gtk.AlertDialog):
+class YNDial(Adw.AlertDialog):
     def __init__(self, _parent, _str1, _str2):
         super().__init__()
         self._parent = _parent
         self._str1 = _str1
         self._str2 = _str2
         #
-        self.set_buttons([_lang.YES, _lang.NO])
-        self.props.cancel_button = 1
-        #
-        self.set_message(self._str1)
-        self.set_detail(self._str2)
+        self.add_response("0", _lang.YES)
+        self.add_response("1", _lang.NO)
+        self.set_heading(self._str1)
+        self.set_body(self._str2)
         #
         self.choose(self._parent._parent._parent, None, self._parent.dialog_action, None)
 
 # yes/no dialog - remove bookmark
-class YNDial2(Gtk.AlertDialog):
+class YNDial2(Adw.AlertDialog):
     def __init__(self, _parent, _str1, _str2, _row):
         super().__init__()
         self._parent = _parent
@@ -2087,27 +2068,22 @@ class YNDial2(Gtk.AlertDialog):
         self._str2 = _str2
         self._row = _row
         #
-        self.set_buttons([_lang.YES, _lang.NO])
-        self.props.cancel_button = 1
-        #
-        self.set_message(self._str1)
-        self.set_detail(self._str2)
+        self.add_response("0", _lang.YES)
+        self.add_response("1", _lang.NO)
+        self.set_heading(self._str1)
+        self.set_body(self._str2)
         #
         self.choose(self_main, None, self._parent.dialog_action_bk, _row)
-
+        
 
 class AlDial(Adw.AlertDialog):
     def __init__(self, _parent, _str1):
         super().__init__()
         self._parent = _parent
         self._str1 = _str1
-        #
-        # self.set_message(self._str1)
         self.set_body(self._str1)
-        #
         self.add_response("close", _lang.CLOSE)
         self.connect("response", self.on_close)
-        #
         self.present(self_main)
         
     def on_close(self, _d, _r):
@@ -2120,11 +2096,7 @@ class SimpleDialog(Adw.Dialog):
         self._parent = _parent
         self._str1 = _str1
         self._str2 = _str2
-        # self.set_transient_for(self._parent)
-        # self.set_modal(True)
-        # self.set_titlebar(Gtk.Box.new(0,0))
-        # self.set_destroy_with_parent(True)
-        # self.set_resizable(False)
+        #
         self.set_name("simpledialog")
         self.set_size_request(DWIDTH, 10)
         #
@@ -2171,11 +2143,7 @@ class RenDialog(Adw.Dialog):
         self._type = _type
         self._str1 = _str1
         self._item = _item
-        # self.set_transient_for(self._parent)
-        # self.set_modal(True)
-        # self.set_titlebar(Gtk.Box.new(0,0))
-        # self.set_destroy_with_parent(True)
-        # self.set_resizable(False)
+        #
         self.set_name("renamedialog")
         self.set_size_request(DWIDTH, 10)
         #
@@ -2228,7 +2196,6 @@ class RenDialog(Adw.Dialog):
         self._entry.get_buffer().connect("deleted-text", self.on_entry)
         #
         GLib.timeout_add(100, self.on_select_region, self._entry, _end_pos)
-        
         
     def on_select_region(self, _entry, _end_pos):
         if _end_pos != 0:
@@ -2310,8 +2277,7 @@ class MainWindow(Adw.ApplicationWindow):
         )
         #
         self.headerbar = Gtk.HeaderBar.new()
-        # without adw
-        # self.set_titlebar(self.headerbar)
+        #
         _w = Gtk.Box.new(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         _w.set_size_request(1,-1)
         _w.set_hexpand(False)
@@ -2348,11 +2314,8 @@ class MainWindow(Adw.ApplicationWindow):
         #
         # MAIN BOX
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        # without adw
-        # self.set_child(self.main_box)
-        # with adw
+        #
         self.set_content(self.main_box)
-        # with adw
         self.main_box.append(self.headerbar)
         #
         self.main_paned = Gtk.Paned.new(orientation=Gtk.Orientation.HORIZONTAL)
@@ -2583,6 +2546,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.drop_controller_lb = Gtk.DropTarget.new(type=GObject.TYPE_NONE, actions=Gdk.DragAction.COPY)
         self.drop_controller_lb.set_gtypes([self, Gdk.FileList, str])
         self.drop_controller_lb.connect("drop", self.on_drop_lb)
+        self.drop_controller_lb.connect("enter", self.on_enter_lb)
+        self.drop_controller_lb.connect("leave", self.on_leave_lb)
         self._lb2.add_controller(self.drop_controller_lb)
         ###########
         self.bookmark_list = []
@@ -3054,7 +3019,7 @@ class MainWindow(Adw.ApplicationWindow):
     # yndial2 function
     def dialog_action_bk(self, _obj, _res, bk_name):
         _result = _obj.choose_finish(_res)
-        if _result == 1:
+        if _result == "1":
             return
         else:
             for i in range(len(self.bookmark_list)):
@@ -3098,6 +3063,8 @@ class MainWindow(Adw.ApplicationWindow):
             self._notebook.set_tab_reorderable(swt, True)
             self._notebook.set_current_page(idx)
             return
+        if not os.path.isdir(_path):
+            return
         if not os.path.exists(_path):
             AlDial(self_main, _lang.FOLDERNOTFOUND+": {}".format(os.path.basename(_path)))
             return
@@ -3113,7 +3080,7 @@ class MainWindow(Adw.ApplicationWindow):
             _values = value.get_files()
             for el in _values:
                 _path = el.get_path()
-                if os.path.exists(_path) and _path not in self.bookmark_list:
+                if os.path.isdir(_path) and os.path.exists(_path) and _path not in self.bookmark_list:
                     box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
                     lbl = Gtk.Label(label=os.path.basename(_path))
                     lbl.set_hexpand(True)
@@ -3137,6 +3104,13 @@ class MainWindow(Adw.ApplicationWindow):
                     except Exception as E:
                         AlDial(self_main, str(E))
                     break
+    
+    def on_enter_lb(self, ctrl, _x, _y):
+        self.exp2.add_css_class("accent")
+        return Gdk.DragAction.COPY
+    
+    def on_leave_lb(self, ctrl):
+        self.exp2.remove_css_class("accent")
     
     # the root folder
     def on_root_tab(self, w):
@@ -3190,372 +3164,11 @@ class MainWindow(Adw.ApplicationWindow):
     def on_quit_action_actived(self, action, param=None):
         self.app_.quit()
     
-    
     def on_property_dialog(self, ITEM_SELECTED, _sw):
         self.prop_dlg = Adw.Dialog.new()
         # new_dlg.set_size_request(500,10)
         self.prop_dlg.set_can_close(True)
         self.prop_dlg.present(self)
-        
-    def aaa(self):
-        #############
-        # def __init__(self, _parent, _list):
-        # super().__init__()
-        # self._parent = _parent
-        # self._list = _list
-        _list = ITEM_SELECTED
-        # if isinstance(self._list, list):
-            # self.set_transient_for(self._parent._parent._parent)
-        # elif isinstance(self._list, str):
-            # self.set_transient_for(self._parent._parent)
-        # self.set_modal(True)
-        # self.set_title(_lang.PROPERTY)
-        # self.set_resizable(True)
-        # self.set_default_size(PDWIDTH, 100)
-        # 
-        # self.headerbar = Gtk.HeaderBar.new()
-        # self.set_titlebar(self.headerbar)
-        # self.headerbar.set_show_title_buttons(False)
-        # #
-        # self.apply_btn = Gtk.Button(label=_lang.APPLY)
-        # self.apply_btn.set_css_classes(["suggested-action",""])
-        # self.apply_btn.connect("clicked", self.on_apply)
-        # #
-        # self.close_btn = Gtk.Button(label=_lang.CLOSE)
-        # self.close_btn.connect("clicked", self.on_close)
-        # self.headerbar.pack_end(self.close_btn)
-        #
-        # self.set_destroy_with_parent(True)
-        # self.set_resizable(False)
-        # self.set_name("propertydialog")
-        #
-        _pbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.prop_dlg.set_child(_pbox)
-        #
-        prop_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        _pbox.append(prop_box)
-        #
-        self.exec_is_changed = False
-        self.perm_is_changed = False
-        # one or more than one item selected
-        if isinstance(_list, list):
-            self.total_num_items_hiddens = 0
-            # one item selected
-            if len(_list) == 1:
-                gfile = _list[0]
-                file_name = gfile.get_name()
-                file_type = gfile.get_content_type()
-                if file_type == "inode/directory":
-                    file_type = _lang.FOLDER
-                dir_name = self._path
-                self.file_path = os.path.join(dir_name, file_name)
-                mode =  os.lstat(self.file_path).st_mode
-                file_size = 0
-                self.has_dir = 0
-                self.total_num_items = 0
-                if os.path.isdir(self.file_path) and not os.path.islink(self.file_path):
-                    self.has_dir = 1
-                    file_size = self.get_size(self.file_path)
-                elif not os.path.islink(self.file_path):
-                    file_size = gfile.get_size()
-                    self.total_num_items += 1
-                else:
-                    self.total_num_items += 1
-                #
-                file_gicon = gfile.get_icon()
-                _img = Gtk.Image.new_from_gicon(file_gicon)
-                _img.set_pixel_size(64)
-                prop_box.append(_img)
-                #
-                file_lbl = Gtk.Label(label="<b>"+file_name+"</b>")
-                file_lbl.set_use_markup(True)
-                file_lbl.props.halign = Gtk.Align.CENTER
-                file_lbl.set_wrap(True)
-                file_lbl.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
-                file_lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-                file_lbl.set_lines(5)
-                prop_box.append(file_lbl)
-                #
-                type_lbl = Gtk.Label.new()
-                prop_box.append(type_lbl)
-                if gfile.get_is_symlink():
-                    type_lbl.set_label("<i>"+_lang.ITEMTYPE+"</i> "+_lang.LINKTYPE)
-                    type_lbl.set_use_markup(True)
-                    link_to = os.readlink(self.file_path)
-                    link_lbl = Gtk.Label(label="("+link_to+")")
-                    link_lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-                    prop_box.append(link_lbl)
-                else:
-                    type_lbl.set_label("<i>"+_lang.ITEMTYPE+"</i> "+file_type)
-                    type_lbl.set_use_markup(True)
-                #
-                if os.path.isdir(self.file_path) and not os.path.islink(self.file_path):
-                    size_lbl = Gtk.Label(label="<i>"+_lang.SIZEITEM+"</i> "+convert_size(file_size))
-                    size_lbl.set_use_markup(True)
-                    prop_box.append(size_lbl)
-                    #
-                    num_items_lbl = Gtk.Label(label="<i>{}</i> {}".format(_lang.NUMITEMS, self.total_num_items))
-                    num_items_lbl.set_use_markup(True)
-                    prop_box.append(num_items_lbl)
-                elif not os.path.islink(self.file_path):
-                    size_lbl = Gtk.Label(label="<i>"+_lang.SIZEITEM+"</i> "+convert_size(file_size))
-                    size_lbl.set_use_markup(True)
-                    prop_box.append(size_lbl)
-                #
-                _frame1 = Gtk.Frame.new(label=None)
-                prop_box.append(_frame1)
-                box_frame1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-                _frame1.set_child(box_frame1)
-                #
-                access_dt = gfile.get_access_date_time().to_local().format("%x %X")
-                access_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-                access_box.set_hexpand(True)
-                access_lbl = Gtk.Label(label="<i>{} </i>".format(_lang.ACCESS))
-                access_lbl.props.halign = Gtk.Align.END
-                access_lbl.set_hexpand(True)
-                access_lbl.set_use_markup(True)
-                access_box.append(access_lbl)
-                access_lbl2 = Gtk.Label(label=access_dt)
-                access_lbl2.props.halign = Gtk.Align.START
-                access_box.append(access_lbl2)
-                box_frame1.append(access_box)
-                # 
-                modified_dt = gfile.get_modification_date_time().to_local().format("%x %X")
-                modified_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-                modified_box.set_hexpand(True)
-                modified_lbl = Gtk.Label(label="<i>{} </i>".format(_lang.MODIFICATION))
-                modified_lbl.props.halign = Gtk.Align.END
-                modified_lbl.set_hexpand(True)
-                modified_lbl.set_use_markup(True)
-                modified_box.append(modified_lbl)
-                modified_lbl2 = Gtk.Label(label=modified_dt)
-                modified_lbl2.props.halign = Gtk.Align.START
-                modified_box.append(modified_lbl2)
-                box_frame1.append(modified_box)
-                # 
-                creation_dt = gfile.get_creation_date_time().to_local().format("%x %X")
-                creation_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-                creation_box.set_hexpand(True)
-                creation_lbl = Gtk.Label(label="<i>{} </i>".format(_lang.CREATION))
-                creation_lbl.props.halign = Gtk.Align.END
-                creation_lbl.set_hexpand(True)
-                creation_lbl.set_use_markup(True)
-                creation_box.append(creation_lbl)
-                creation_lbl2 = Gtk.Label(label=creation_dt)
-                creation_lbl2.props.halign = Gtk.Align.START
-                creation_box.append(creation_lbl2)
-                #
-                box_frame1.append(creation_box)
-                #
-                is_executable = os.access(self.file_path, os.X_OK)
-                # executable or accessible checkbox
-                if stat.S_ISREG(mode) or stat.S_ISLNK(mode):
-                    self.chk_exec = Gtk.CheckButton.new_with_label(_lang.FILE_EXECUTABLE)
-                    prop_box.append(self.chk_exec)
-                    self.chk_exec.set_active(is_executable)
-                    self.chk_exec.connect("toggled", self.on_chk_exec)
-                elif stat.S_ISDIR(mode):
-                    self.chk_exec = Gtk.CheckButton.new_with_label(_lang.FOLDER_ACCESS)
-                    prop_box.append(self.chk_exec)
-                    self.chk_exec.set_active(is_executable)
-                    self.chk_exec.connect("toggled", self.on_chk_exec)
-                #
-                # PERMISSIONS
-                file_stat = os.stat(self.file_path)
-                file_mode = file_stat.st_mode
-                file_perm = oct(file_mode & 0o777)[-3:]
-                user_perm = file_perm[0]
-                group_perm = file_perm[1]
-                other_perm = file_perm[2]
-                #
-                _frame2 = Gtk.Frame.new(label=None)
-                prop_box.append(_frame2)
-                box_frame2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-                _frame2.set_child(box_frame2)
-                # recursive option if folder
-                if stat.S_ISDIR(mode):
-                    self.chk_recursive = Gtk.CheckButton.new_with_label(_lang.FOLDER_RECURSIVE)
-                    box_frame2.append(self.chk_recursive)
-                #
-                boxuser = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0) 
-                box_frame2.append(boxuser)
-                path = Path(self.file_path)
-                owner = path.owner()
-                user_lbl = Gtk.Label(label=owner)
-                user_lbl.set_hexpand(True)
-                user_lbl.props.halign = Gtk.Align.START
-                boxuser.append(user_lbl)
-                self.dd_user = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
-                self.dd_user.props.halign = Gtk.Align.END
-                self.on_dropdown_select(self.dd_user, user_perm)
-                boxuser.append(self.dd_user)
-                self.dd_user.connect("notify::selected", self.on_dropdown_changed)
-                #
-                boxgroup = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0) 
-                box_frame2.append(boxgroup)
-                group_lbl = Gtk.Label(label=_lang.ISGROUP)
-                group_lbl.set_hexpand(True)
-                group_lbl.props.halign = Gtk.Align.START
-                boxgroup.append(group_lbl)
-                self.dd_group = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
-                self.dd_group.props.halign = Gtk.Align.END
-                self.on_dropdown_select(self.dd_group, group_perm)
-                boxgroup.append(self.dd_group)
-                self.dd_group.connect("notify::selected", self.on_dropdown_changed)
-                #
-                boxother = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0) 
-                box_frame2.append(boxother)
-                other_lbl = Gtk.Label(label=_lang.ISOTHER)
-                other_lbl.set_hexpand(True)
-                other_lbl.props.halign = Gtk.Align.START
-                boxother.append(other_lbl)
-                self.dd_other = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
-                self.dd_other.props.halign = Gtk.Align.END
-                self.on_dropdown_select(self.dd_other, other_perm)
-                boxother.append(self.dd_other)
-                self.dd_other.connect("notify::selected", self.on_dropdown_changed)
-                #
-                # self.headerbar.pack_start(self.apply_btn)
-            # more than one item selected
-            elif len(self._list) > 1:
-                len_list = len(_list)
-                list_size = 0
-                self.has_dir = 0
-                self.total_num_items = 0
-                self.not_owner = 0
-                for el in _list:
-                    dir_name = self._path
-                    file_name = el.get_name()
-                    self.file_path = os.path.join(dir_name,file_name)
-                    try:
-                        path = Path(os.path.join(self._path,el.get_name()))
-                        owner = path.owner()
-                        if owner != GLib.get_user_name():
-                            self.not_owner = 1
-                            break
-                    except Exception as E:
-                        break
-                    try:
-                        if os.path.isdir(self.file_path) and not os.path.islink(self.file_path):
-                            self.has_dir += 1
-                            list_size += self.get_size(self.file_path)
-                        elif not os.path.islink(self.file_path):
-                            list_size += el.get_size()
-                            self.total_num_items += 1
-                        else:
-                            self.total_num_items += 1
-                    except:
-                        pass
-                #
-                if self.not_owner == 0:
-                    # number of items
-                    nitem_lbl = Gtk.Label(label="<i>{}</i> {}".format(_lang.NUMITEMS, len_list))
-                    nitem_lbl.set_use_markup(True)
-                    prop_box.append(nitem_lbl)
-                    #
-                    item_size = Gtk.Label(label="<i>{}</i> {}".format(_lang.SIZEITEMS, convert_size(list_size)))
-                    item_size.set_use_markup(True)
-                    prop_box.append(item_size)
-                    #
-                    _frame1 = Gtk.Frame.new(label=None)
-                    prop_box.append(_frame1)
-                    box_frame1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-                    _frame1.set_child(box_frame1)
-                    #
-                    message_lbl = Gtk.Label(label="<b>"+_lang.PERMNOTICE+"</b>")
-                    message_lbl.set_use_markup(True)
-                    box_frame1.append(message_lbl)
-                    #
-                    if self.has_dir < self.total_num_items:
-                        self.chk_exec = Gtk.CheckButton.new_with_label(_lang.FILE_EXECUTABLE)
-                        box_frame1.append(self.chk_exec)
-                    # recursive option if one folder at least
-                    if self.has_dir:
-                        self.chk_recursive = Gtk.CheckButton.new_with_label(_lang.FOLDER_RECURSIVE)
-                        box_frame1.append(self.chk_recursive)
-                        self.chk_recursive.set_active(True)
-                    #
-                    boxuser = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0) 
-                    box_frame1.append(boxuser)
-                    user_lbl = Gtk.Label(label=owner)
-                    user_lbl.set_hexpand(True)
-                    user_lbl.props.halign = Gtk.Align.START
-                    boxuser.append(user_lbl)
-                    self.dd_user = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
-                    self.dd_user.props.halign = Gtk.Align.END
-                    boxuser.append(self.dd_user)
-                    #
-                    boxgroup = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0) 
-                    box_frame1.append(boxgroup)
-                    group_lbl = Gtk.Label(label=_lang.ISGROUP)
-                    group_lbl.set_hexpand(True)
-                    group_lbl.props.halign = Gtk.Align.START
-                    boxgroup.append(group_lbl)
-                    self.dd_group = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
-                    self.dd_group.props.halign = Gtk.Align.END
-                    boxgroup.append(self.dd_group)
-                    #
-                    boxother = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0) 
-                    box_frame1.append(boxother)
-                    other_lbl = Gtk.Label(label=_lang.ISOTHER)
-                    other_lbl.set_hexpand(True)
-                    other_lbl.props.halign = Gtk.Align.START
-                    boxother.append(other_lbl)
-                    self.dd_other = Gtk.DropDown.new_from_strings([_lang.PROPREADWRITE,_lang.PROPREAD,_lang.PROPWRITE,_lang.PROPFORBIDDEN])
-                    self.dd_other.props.halign = Gtk.Align.END
-                    boxother.append(self.dd_other)
-                    #
-                    # self.headerbar.pack_start(self.apply_btn)
-                else:
-                    err_lbl = Gtk.Label(label=_lang.NOTOWNER)
-                    prop_box.append(err_lbl)
-        
-        # background selected
-        elif isinstance(_list, str):
-            folder_size = 0
-            self.total_num_items = 0
-            self.total_num_items_hiddens = 0
-            _errors = ""
-            try:
-                folder_size = self.get_size(_list)
-            except Exception as E:
-                _errors += str(E)
-            #
-            if _errors:
-                AlDial(self_main, str(E))
-            else:
-                #
-                _gfile = Gio.File.new_for_path(_list)
-                if icon_theme.has_icon("folder"):
-                    file_icon = icon_theme.lookup_icon("folder", [], 64, 1, 0, Gtk.IconLookupFlags.FORCE_REGULAR)
-                _img = Gtk.Image.new_from_paintable(file_icon)
-                _img.set_pixel_size(64)
-                prop_box.append(_img)
-                #
-                lbl_name = Gtk.Label(label="<b>"+os.path.basename(self._list)+"</b>")
-                lbl_name.set_use_markup(True)
-                prop_box.append(lbl_name)
-                #
-                if os.path.islink(self._list):
-                    link_to =  os.readlink(self._list)
-                    lbl_link = Gtk.Label(label="<i>{}</i> {}".format(_lang.LINKTO, os.path.basename(link_to)))
-                    lbl_link.set_use_markup(True)
-                    prop_box.append(lbl_link)
-                #
-                lbl1 = Gtk.Label(label="<i>{}</i> {}". format(_lang.SIZEITEM,convert_size(folder_size)))
-                lbl1.set_use_markup(True)
-                prop_box.append(lbl1)
-                #
-                lbl2 = Gtk.Label(label="<i>{}</i> {}".format(_lang.NUMITEMS, self.total_num_items))
-                lbl2.set_use_markup(True)
-                prop_box.append(lbl2)
-                #
-                if self.total_num_items_hiddens > 0:
-                    lbl3 = Gtk.Label(label="(<i>{}</i> {})".format(_lang.ITEMSHIDDEN, self.total_num_items_hiddens))
-                    lbl3.set_use_markup(True)
-                    prop_box.append(lbl3)
-        #
-        self.prop_dlg.present(self._parent._parent)
     
     def get_size(self, start_path):
         total_size = 0
@@ -4536,7 +4149,6 @@ class ScrolWin(Gtk.ScrolledWindow):
             self.SELECTED_WIDGET = []
             self.SELECTED_ITEMS = []
     
-    # da fare: con x e y cercare il box e se trovo uno fare nulla
     def on_gesture_r(self, o,n,x,y):
         if self.is_inside != False:
             return
@@ -5010,16 +4622,11 @@ class WinSettings(Adw.Dialog):
     def __init__(self, _parent):
         super().__init__()
         self._parent = _parent
-        # self.set_transient_for(self._parent)
-        # self.set_destroy_with_parent(True)
         self.set_name("settingdialog")
-        # self.set_resizable(True)
-        # self.set_follows_content_size(True)
         self.set_size_request(400, 400)
         self.set_title("Settings")
         # 
         self.headerbar = Gtk.HeaderBar.new()
-        # self.set_titlebar(self.headerbar)
         self.headerbar.set_show_title_buttons(False)
         #
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -5296,7 +4903,7 @@ class MyApp(Adw.Application):
         # self.set_accels_for_action("win.Cut", ["<Control>X"])
         # self.set_accels_for_action("win.Paste", ["<Control>V"])
         self.set_accels_for_action("win.Trash", ["<Control>r"])
-
+    
     def do_activate(self):
         active_window = self.props.active_window
         if active_window:
