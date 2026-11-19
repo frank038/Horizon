@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.52 beta"
+VERSION = "0.9.53 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -15,6 +15,7 @@ gi.require_version('GUdev', '1.0')
 from gi.repository import GUdev
 from urllib.parse import unquote, quote
 import stat,shutil
+import time
 from threading import Thread, Event
 import subprocess
 from pathlib import Path
@@ -31,6 +32,8 @@ _HOME = os.path.expanduser("~")
 
 locale.setlocale(locale.LC_ALL, '')
 DECIMAL_SEP = locale.localeconv()["decimal_point"]
+
+USER_HOME_DIRS = [GLib.UserDirectory.DIRECTORY_DESKTOP,GLib.UserDirectory.DIRECTORY_DOCUMENTS,GLib.UserDirectory.DIRECTORY_PICTURES,GLib.UserDirectory.DIRECTORY_MUSIC,GLib.UserDirectory.DIRECTORY_VIDEOS,GLib.UserDirectory.DIRECTORY_PUBLIC_SHARE,GLib.UserDirectory.DIRECTORY_DOWNLOAD]
 
 # the directory settings and options
 if not os.access(_curr_dir, os.W_OK):
@@ -496,8 +499,7 @@ def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None, _overwri
     except Exception as E:
         _errors += "Error: {}".format(str(E))
         
-import time
-# 
+
 # class CopyThread(Thread):
     # def __init__(self, path_source,_dest,_operation, _signal, _event, _overwrite):
         # self.path_source = path_source
@@ -1403,9 +1405,11 @@ class WinPopover(Gtk.PopoverMenu):
     
     def on_remove(self, action, param):
         self.popdown()
+        self._parent.grab_focus()
         _YND = YNDial(self, _lang.DELETEQ, _lang.ITEMREMOVEDEVER)
         return
         
+    # yes/no dialog - delete items
     def dialog_action(self, _obj, _res, _data=None):
         _result = _obj.choose_finish(_res)
         self._value = _result
@@ -2169,14 +2173,15 @@ class RenDialog(Adw.Dialog):
         self._type = _type
         self._str1 = _str1
         self._item = _item
-        self.set_margin_start(4)
-        self.set_margin_end(4)
-        self.set_margin_bottom(4)
         #
         self.set_name("renamedialog")
         self.set_size_request(DWIDTH, 10)
         #
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.box.set_margin_start(4)
+        self.box.set_margin_end(4)
+        self.box.set_margin_top(4)
+        self.box.set_margin_bottom(4)
         self.set_child(self.box)
         #
         _end_pos = 0
@@ -2358,10 +2363,12 @@ class MainWindow(Adw.ApplicationWindow):
         self.lat_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.lat_box.set_hexpand(True)
         self.lat_box.set_vexpand(True)
-        self.lat_box.set_margin_start(10)
-        self.lat_box.set_margin_end(6)
-        self.lat_box.set_margin_top(10)
-        self.lat_box.set_margin_bottom(6)
+        # self.lat_box.set_margin_start(10)
+        # self.lat_box.set_margin_end(6)
+        # self.lat_box.set_margin_top(10)
+        # self.lat_box.set_margin_bottom(6)
+        self.lat_box.add_css_class("navigation-sidebar")
+        self.lat_box.set_name("lateralmainbox")
         #
         self.main_paned.set_start_child(self.lat_box)
         self.lateral_panel_folder_populate() # the main user folders
@@ -2507,21 +2514,31 @@ class MainWindow(Adw.ApplicationWindow):
         self.lat_sw.set_vexpand(True)
         self.lat_sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC) 
         self.lat_box.append(self.lat_sw)
+        self.lat_sw.set_margin_start(10)
+        self.lat_sw.set_margin_end(6)
+        self.lat_sw.set_margin_top(10)
+        self.lat_sw.set_margin_bottom(6)
         #
         self.scroll_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.lat_sw.set_child(self.scroll_box)
+        # self.scroll_box.add_css_class("navigation-sidebar")
+        # self.scroll_box.set_name("lateralmainbox")
         #
         # str = GLib.get_user_special_dir : GLib.UserDirectory DIRECTORY_DESKTOP DIRECTORY_DOCUMENTS DIRECTORY_DOWNLOAD
         # DIRECTORY_MUSIC DIRECTORY_PICTURES DIRECTORY_PUBLIC_SHARE DIRECTORY_TEMPLATES
         # DIRECTORY_VIDEOS 
         #
         HOME_DIRS = []
-        for el in [GLib.UserDirectory.DIRECTORY_DESKTOP,GLib.UserDirectory.DIRECTORY_DOCUMENTS,GLib.UserDirectory.DIRECTORY_PICTURES,GLib.UserDirectory.DIRECTORY_MUSIC,GLib.UserDirectory.DIRECTORY_VIDEOS,GLib.UserDirectory.DIRECTORY_PUBLIC_SHARE,GLib.UserDirectory.DIRECTORY_DOWNLOAD]:
+        for el in USER_HOME_DIRS:
             HOME_DIRS.append(os.path.basename(GLib.get_user_special_dir(el)))
         HOME_DIRS_ICONS = ["folder-desktop", "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
         #
-        self.exp1 = Gtk.Expander.new(label=_lang.LHOME)
+        self.exp1 = Gtk.Expander.new(label=" ")
+        self.exp1_lbl = self.exp1.get_label_widget()
+        self.exp1_lbl.set_use_markup(True)
+        self.exp1_lbl.set_label("<b>"+_lang.LHOME+"</b>")
         self.exp1.set_expanded(True)
+        self.exp1.set_name("lexpander")
         #
         self._lb1 = Gtk.ListBox.new()
         # self.scroll_box.append(self._lb1)
@@ -2557,8 +2574,12 @@ class MainWindow(Adw.ApplicationWindow):
         self._lb1.append(_boxt)
         
     def lateral_panel_bookmark_populate(self):
-        self.exp2 = Gtk.Expander.new(label=_lang.LBOOKMARKS)
+        self.exp2 = Gtk.Expander.new(label=" ")
+        self.exp2_lbl = self.exp2.get_label_widget()
+        self.exp2_lbl.set_use_markup(True)
+        self.exp2_lbl.set_label("<b>"+_lang.LBOOKMARKS+"</b>")
         self.exp2.set_expanded(True)
+        self.exp2.set_name("lexpander")
         #
         self._lb2 = Gtk.ListBox.new()
         self._lb2.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -2605,11 +2626,16 @@ class MainWindow(Adw.ApplicationWindow):
             _gesture_r.connect('pressed', self.on_bk_gesture_r)
     
     def lateral_panel_volume_populate(self):
-        self.exp3 = Gtk.Expander.new(label=_lang.LDEVICES)
+        self.exp3 = Gtk.Expander.new(label=" ")
+        self.exp3_lbl = self.exp3.get_label_widget()
+        self.exp3_lbl.set_use_markup(True)
+        self.exp3_lbl.set_label("<b>"+_lang.LDEVICES+"</b>")
         self.exp3.set_expanded(True)
+        self.exp3.set_name("lexpander3")
         #
         self.volume_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.volume_box.set_halign(Gtk.Align.START)
+        self.volume_box.add_css_class("navigation-sidebar")
         # self.scroll_box.append(self.volume_box)
         self.exp3.set_child(self.volume_box)
         self.scroll_box.append(self.exp3)
@@ -2702,11 +2728,11 @@ class MainWindow(Adw.ApplicationWindow):
         _fc = self.volume_box.get_first_child()
         if _fc == None:
             return
-        i = 0
+        # i = 0
         while _fc != None:
-            i += 1
-            if i == 20:
-                break
+            # i += 1
+            # if i == 20:
+                # break
             if _fc._device == target_device:
                 _fc.lbl.mount_path = mount_path
                 _fc._mount = _mount
@@ -2815,6 +2841,7 @@ class MainWindow(Adw.ApplicationWindow):
         if 1:
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
             box.set_hexpand(True)
+            box.add_css_class("navigation-sidebar")
             self.volume_box.append(box)
             m_name = device_name or os.path.basename(target_device) # _mount.get_name()
             m_icon = icon_theme.lookup_icon("drive", ["drive-harddisk"], PANEL_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_SYMBOLIC)
@@ -3135,11 +3162,13 @@ class MainWindow(Adw.ApplicationWindow):
                     break
     
     def on_enter_lb(self, ctrl, _x, _y):
-        self.exp2.add_css_class("accent")
+        # self.exp2.add_css_class("accent")
+        self.exp2.add_css_class("myaccent")
         return Gdk.DragAction.COPY
     
     def on_leave_lb(self, ctrl):
-        self.exp2.remove_css_class("accent")
+        # self.exp2.remove_css_class("accent")
+        self.exp2.remove_css_class("myaccent")
     
     # the root folder
     def on_root_tab(self, w):
@@ -3170,6 +3199,24 @@ class MainWindow(Adw.ApplicationWindow):
             sw._label_tab.set_tooltip_text(_path)
     
     def on_notebook_tab_changed(self, notebook, page, page_num):
+        folder_found = 0
+        for el in USER_HOME_DIRS:
+            _name = GLib.get_user_special_dir(el)
+            if page._path == _name:
+                folder_found = _name
+                break
+        if folder_found == 0:
+            self._lb1.unselect_all()
+        else:
+            row = self._lb1.get_first_child()
+            if row.get_child().name == folder_found:
+                self._lb1.select_row(row)
+            while row != None:
+                row = row.get_next_sibling()
+                if row.get_child().name == folder_found:
+                    self._lb1.select_row(row)
+                    break
+        #
         self.path_bar.set_path(page._path, 1)
         # restore the scrolledwindow position after change back the page
         _adj = page.get_vadjustment()
@@ -3483,7 +3530,8 @@ class PathBar(Gtk.ScrolledWindow):
             btn.set_label(label=label)
         if is_last:
             btn.set_sensitive(True)
-            btn.add_css_class("suggested-action")
+            # btn.add_css_class("suggested-action")
+            btn.add_css_class("accent")
         #
         btn.connect("clicked", self._on_button_clicked, target_path)
         # 
@@ -3831,6 +3879,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         self.set_vexpand(True)
         self.propagate_natural_height = 1
         self.propagate_natural_width = 1
+        self.set_can_focus(True)
         # notebook page label
         self.on_create_notebook_label()
         # Gtk.DirectoryList
@@ -3916,6 +3965,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         sort_model = Gtk.SortListModel(model=_m, sorter=_sorter)
         #
         multisel = Gtk.MultiSelection()
+        # multisel.connect("items-changed", self.on_multisel_changed)
         #
         filter_model = Gtk.FilterListModel.new(sort_model, custom_filter)
         multisel.set_model(filter_model)
@@ -3968,7 +4018,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         self._gesture_r.connect('pressed', self.on_gesture_r)
         self.right_click_setted = 0
         #
-        self.grid1.grab_focus()
+        # self.grid1.grab_focus()
         ### shortcuts
         self._ctrl = Gtk.ShortcutController()
         self.add_controller(self._ctrl)
@@ -3993,6 +4043,10 @@ class ScrolWin(Gtk.ScrolledWindow):
         if self.item_to_select != None:
             self.grid1.scroll_to(self.item_to_select, Gtk.ListScrollFlags.SELECT, None)
             self.item_to_select = None
+        self.grab_focus()
+    
+    # def on_multisel_changed(self, list_model, position, removed, added):
+        # pass
     
     def on_terminal(self, action, param, _path=None, _a=None, _b=None):
         # if isinstance(_a, Gtk.Popover):
@@ -4029,6 +4083,8 @@ class ScrolWin(Gtk.ScrolledWindow):
             ITEMS_TO_TRASH = []
             for el in self.SELECTED_ITEMS:
                 ITEMS_TO_TRASH.append(os.path.join(self._path, el))
+            # not to let scroll to top
+            self.grab_focus()
             TrashModule(ITEMS_TO_TRASH)
     
     def f_setup(self, fact, item):
