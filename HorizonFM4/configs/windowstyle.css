@@ -1,3 +1,19 @@
+#lexpander title {
+  color: var(--sidebar-fg-color);
+}
+
+#lexpander.myaccent label {
+  color: @accent_color;
+}
+
+#lexpander3 * {
+  color: var(--sidebar-fg-color);
+}
+
+/*#lateralmainbox {
+ border-radius: 8px;
+}*/
+
 /* space between items */
 gridview > child {
   margin: 2px;
