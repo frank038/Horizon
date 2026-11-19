@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.53 beta"
+VERSION = "0.9.54 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -3198,7 +3198,7 @@ class MainWindow(Adw.ApplicationWindow):
             _m.set_file(_dir)
             sw._label_tab.set_tooltip_text(_path)
     
-    def on_notebook_tab_changed(self, notebook, page, page_num):
+    def select_lateral_folder(self, page):
         folder_found = 0
         for el in USER_HOME_DIRS:
             _name = GLib.get_user_special_dir(el)
@@ -3216,6 +3216,9 @@ class MainWindow(Adw.ApplicationWindow):
                 if row.get_child().name == folder_found:
                     self._lb1.select_row(row)
                     break
+    
+    def on_notebook_tab_changed(self, notebook, page, page_num):
+        self.select_lateral_folder(page)
         #
         self.path_bar.set_path(page._path, 1)
         # restore the scrolledwindow position after change back the page
@@ -3545,6 +3548,9 @@ class PathBar(Gtk.ScrolledWindow):
     def _on_button_clicked(self, button, target_path):
         if self.on_path_changed_callback:
             self.on_path_changed_callback(target_path)
+            #
+            page = self._parent._notebook.get_nth_page(self._parent._notebook.get_current_page())
+            self._parent.select_lateral_folder(page)
     
     def connect_path_changed(self, callback):
         self.on_path_changed_callback = callback
@@ -3904,6 +3910,7 @@ class ScrolWin(Gtk.ScrolledWindow):
                         if os.access(new_path, os.R_OK) and os.access(new_path, os.X_OK):
                             self._parent.trigger_path_update(new_path)
                             self._path = new_path
+                            self._parent.select_lateral_folder(self)
                         else:
                             AlDial(self_main, _lang.FOLDERNOTREADABLE)
                     elif _fi.get_file_type() == Gio.FileType.REGULAR:
