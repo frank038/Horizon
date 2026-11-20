@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.55 beta"
+VERSION = "0.9.57 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -437,33 +437,33 @@ def on_copy_file(dest_path=None, ff=None, operation=None, _signal=None, _overwri
             if _signal:
                 _signal.propList = ["PULSE_COPY",os.path.basename(ff)]
             # 
-            if not os.path.exists(dest_path):
-                ret = on_copy_file2(dest_path, ff, _overwrite)
-                if ret != 1:
-                    _errors += "Error: {}".format(os.path.basename(ff))
-                    return _errors
-                elif ret == 1:
-                    try:
-                        if operation == "cut":
-                            os.unlink(ff)
-                    except Exception as E:
-                        _errors += str(E)+"\n"
-                        return _errors
-                    return 1
-            else:
-                # it is the same file, make a copy
+            # if not os.path.exists(dest_path):
+            ret = on_copy_file2(dest_path, ff, _overwrite)
+            if ret != 1:
+                _errors += "Error: {}".format(os.path.basename(ff))
+                return _errors
+            elif ret == 1:
                 try:
                     if operation == "cut":
-                        _errors += "Error {}: same file.".format(os.path.basename(ff)) 
-                        return _errors
-                    ret = on_copy_file2(dest_path, ff, _overwrite)
-                    if ret != 1:
-                        _errors += "Error: {}".format(os.path.basename(ff))
-                        return _errors
+                        os.unlink(ff)
                 except Exception as E:
                     _errors += str(E)+"\n"
                     return _errors
                 return 1
+            # else:
+                # # it is the same file, make a copy
+                # try:
+                    # if operation == "cut":
+                        # _errors += "Error {}: same file.".format(os.path.basename(ff)) 
+                        # return _errors
+                    # ret = on_copy_file2(dest_path, ff, _overwrite)
+                    # if ret != 1:
+                        # _errors += "Error: {}".format(os.path.basename(ff))
+                        # return _errors
+                # except Exception as E:
+                    # _errors += str(E)+"\n"
+                    # return _errors
+                # return 1
         elif stat.S_ISLNK(mode):
             _signal.propList = ["PULSE_COPY",os.path.basename(ff)]
             if os.path.islink(dest_path) and os.path.exists(dest_path) == True:
@@ -624,7 +624,7 @@ def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_sam
         _object = GLib.Thread.new(None, CopyThread2, (path_source,_dest,_operation,_signalc,_event,_overwrite))
         #######
         #
-        _CD.present()
+        _CD.present(self_main)
         #
         return _object
 
@@ -678,6 +678,9 @@ def on_choose_app(_path, _file):
     _ff = Gio.File.new_for_path(os.path.join(_path, _file))
     DAC = Gtk.AppChooserDialog.new(self_main, Gtk.DialogFlags.MODAL, _ff)
     DAC.set_size_request(-1,400)
+    DAC.set_transient_for(self_main)
+    DAC.set_modal(True)
+    DAC.set_icon_name("icon_horizon")
     DAC.get_widget().set_show_default(True)
     DAC.get_widget().connect("application-activated", on_app_activated, _ff, DAC)
     dac_box = DAC.get_content_area() # vertical
@@ -1040,33 +1043,33 @@ class ItemBox(Gtk.Box):
         # else:
             # self._signal.propList = ["DELETE_DONE"]
 
-class OWD(Gtk.AppChooserDialog):
-    def __init__(self, _parent, _file):
-        super().__init__()
-        self._parent = _parent
-        self._file = _file
-        #
-        self.set_transient_for(self._parent)
-        self.set_modal(True)
-        self.set_destroy_with_parent(True)
-        self.set_size_request(-1, 400)
-        # vertical box
-        self.main_box = self.get_content_area()
-        #
-        self.box2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        self.box2.set_hexpand(True)
-        self.main_box.append(self.box2)
-        #
-        lbl = Gtk.Label(label="ciao")
-        self.box2.append(lbl)
-        #
-        self.present()
+# class OWD(Gtk.AppChooserDialog):
+    # def __init__(self, _parent, _file):
+        # super().__init__()
+        # self._parent = _parent
+        # self._file = _file
+        # #
+        # self.set_transient_for(self._parent)
+        # self.set_modal(True)
+        # self.set_destroy_with_parent(True)
+        # self.set_size_request(-1, 400)
+        # # vertical box
+        # self.main_box = self.get_content_area()
+        # #
+        # self.box2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        # self.box2.set_hexpand(True)
+        # self.main_box.append(self.box2)
+        # #
+        # lbl = Gtk.Label(label="ciao")
+        # self.box2.append(lbl)
+        # #
+        # self.present()
 
 class WinPopover(Gtk.PopoverMenu):
     # parent: window - widget: box or scrollwindow - type: 1 one item - >1 more than one item - -99 background
     def __init__(self, _parent, _widget, _path, _type, _pos):
         super().__init__()
-        self._parent = _parent # srollwindow
+        self._parent = _parent # scrollwindow
         self._widget = _widget # itembox
         self._path = _path # parent folder
         self._type = _type
@@ -1244,10 +1247,53 @@ class WinPopover(Gtk.PopoverMenu):
                 button_trash.connect("activate", self._parent.on_trash)
                 action_group.add_action(button_trash)
         # scripts
-        if self._type > 0:
+        if self._type > 0 or self._type == -99:
             _list_dir = os.listdir(SCRIPTS_DIRECTORY)
             for el in _list_dir:
-                if os.access(os.path.join(SCRIPTS_DIRECTORY,el), os.X_OK):
+                f_script = os.path.join(SCRIPTS_DIRECTORY,el)
+                if not os.path.isdir(f_script) and os.access(f_script, os.X_OK):
+                    try:
+                        ret = subprocess.check_output([os.path.join(SCRIPTS_DIRECTORY,el), "param"])
+                        # CODE: -1 do not check - 0 everytime - 1 one item - 2 more than one item - 3 one or more than one item - 99 background
+                        # LIST_OF_MIMETYES (only check the firs item): mimetypes separated with \n OR none (do not check)
+                        # # FILE_TYPE (only check the firs item): @ all - D directory - F file
+                        ret_list = ret.decode().rstrip().replace("\\n", "\n").split("\n")
+                        _CODE = int(ret_list[0])
+                        if _CODE == 99 and self._type != -99:
+                            continue
+                        elif _CODE == 1 and (self._type == -99 or len(self._parent.SELECTED_ITEMS) > 1):
+                            continue
+                        elif _CODE == 2 and (self._type == -99 or len(self._parent.SELECTED_ITEMS) < 2):
+                            continue
+                        elif _CODE == 3 and self._type == -99:
+                            continue
+                        if _CODE != -1 and not self._type == -99:
+                            # _FILE_TYPE = ret_list[-1]
+                            # #
+                            # if _FILE_TYPE == "D" and not os.path.isdir(os.path.join(folder_path, self._parent.SELECTED_ITEMS[0])):
+                                # continue
+                            # elif _FILE_TYPE == "F" and not os.path.isfile(os.path.join(folder_path, self._parent.SELECTED_ITEMS[0])):
+                                # continue
+                            #
+                            # _MIMETYPES = ret_list[1:-1]
+                            _MIMETYPES = ret_list[1:]
+                            if _MIMETYPES != ["none"]:
+                                folder_path = self._parent._path
+                                # NO_MIME_TARGET = 0
+                                # for _item in self._parent.SELECTED_ITEMS:
+                                _item = self._parent.SELECTED_ITEMS[0]
+                                file_path = os.path.join(folder_path, _item)
+                                _gfile = Gio.File.new_for_path(file_path)
+                                _info = _gfile.query_info("standard::content-type", 0, None)
+                                content_type = _info.get_content_type() or ""
+                                if content_type not in _MIMETYPES:
+                                    continue
+                                    # NO_MIME_TARGET = 1
+                                    # break
+                                # if NO_MIME_TARGET == 1:
+                                    # continue
+                    except:
+                        pass
                     self.file_menu.append(el, 'win.{}'.format(el.replace(" ","_")))
                     btn_script = Gio.SimpleAction(name=el.replace(" ","_"), parameter_type=None, enabled=True)
                     btn_script.connect("activate", self.on_script, os.path.join(SCRIPTS_DIRECTORY,el))
@@ -1458,7 +1504,7 @@ class WinPopover(Gtk.PopoverMenu):
             #
             _object = GLib.Thread.new(None, self.DeleteThread2, (LIST_SELECTED,_signald,_eventd))
             #
-            _CD.present()
+            _CD.present(self_main)
     
     def DeleteThread2(self, _d):
         path_source, _signal, _event = _d
@@ -1597,7 +1643,8 @@ class PropertyDialog(Adw.Dialog):
                     if os.access(self.file_path, os.R_OK) and os.access(self.file_path, os.X_OK):
                         file_size = self.get_size(self.file_path)
                 elif not os.path.islink(self.file_path):
-                    file_size = gfile.get_size()
+                    # file_size = gfile.get_size()
+                    file_size = os.path.getsize(self.file_path)
                     self.total_num_items += 1
                 else:
                     self.total_num_items += 1
@@ -2068,6 +2115,10 @@ class PropertyDialog(Adw.Dialog):
         
     def on_close(self, w):
         # self.destroy()
+        if isinstance(self._parent._parent, MainWindow):
+            self._parent._parent.grab_focus()
+        elif isinstance(self._parent._parent, ScrolWin):
+            self._parent._parent._parent.grab_focus()
         self.close()
         
         
