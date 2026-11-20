@@ -10,6 +10,12 @@
   color: var(--sidebar-fg-color);
 }
 
+#mydevicebox.mydeviceclass {
+  background: var(--sidebar-fg-color);
+  color: var(--sidebar-bg-color);
+  border-radius: 8px;
+}
+
 /*#lateralmainbox {
  border-radius: 8px;
 }*/
