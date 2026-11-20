@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.54 beta"
+VERSION = "0.9.55 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -2295,12 +2295,15 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(*args, **kwargs)
         self.set_default_size(WWIDTH, WHEIGHT)
         self.app_ = self.get_application()
-        self.set_title("File Manager")
+        self.set_title(FMNAME)
         global self_main
         self_main = self
         self.connect("show", self.on_main_shown)
         self.connect("close-request", self.on_close)
-        # self.connect("force-close", self.on_force_close)
+        try:
+            self.connect("force-close", self.on_force_close)
+        except:
+            pass
         #
         css_provider = Gtk.CssProvider()
         css_provider.load_from_path(PANEL_STYLE_CSS)
@@ -2458,6 +2461,7 @@ class MainWindow(Adw.ApplicationWindow):
             sw = ScrolWinTrash(self)
         else:
             sw = ScrolWin(self.starting_path, self)
+            self.set_title(self.starting_path)
             sw.grid1.grab_focus()
         if sw != None:
             self._notebook.append_page(sw, sw.tab_label)
@@ -2477,6 +2481,10 @@ class MainWindow(Adw.ApplicationWindow):
     def on_quit_action(self, action, param=None, _a=None, _b=None, _c=None):
         self.app_.quit()
         
+    def on_force_close(self, _w):
+        self.set_visible(False)
+        self.on_close(_w)
+    
     def on_close(self, _w):
         _WWIDTH = self.get_width()
         _WHEIGHT = self.get_height()
@@ -2498,9 +2506,6 @@ class MainWindow(Adw.ApplicationWindow):
             _ff.close()
         except:
             pass
-        
-    # def on_force_close(self, _w):
-        # self.set_visible(False)
     
     def on_main_shown(self, w):
         self._lb1.unselect_all()
@@ -2531,7 +2536,10 @@ class MainWindow(Adw.ApplicationWindow):
         HOME_DIRS = []
         for el in USER_HOME_DIRS:
             HOME_DIRS.append(os.path.basename(GLib.get_user_special_dir(el)))
-        HOME_DIRS_ICONS = ["folder-desktop", "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
+        # HOME_DIRS_ICONS = ["folder-desktop", "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
+        HOME_DIRS_ICONS_SYMBOLIC = ["user-desktop-symbolic",  "folder-documents-symbolic", "folder-pictures-symbolic", "folder-music-symbolic", "folder-videos-symbolic", "folder-publicshare-symbolic", "folder-downloads-symbolic"]
+        HOME_DIRS_ICONS = ["user-desktop",  "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
+        HOME_DIRS_ICONS_ALT = ["folder-desktop", "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
         #
         self.exp1 = Gtk.Expander.new(label=" ")
         self.exp1_lbl = self.exp1.get_label_widget()
@@ -2554,7 +2562,7 @@ class MainWindow(Adw.ApplicationWindow):
             if not os.path.exists(os.path.join(_HOME,el)):
                 continue
             _box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,spacing=0)
-            hip = icon_theme.lookup_icon(HOME_DIRS_ICONS[i], [], PANEL_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_SYMBOLIC)
+            hip = icon_theme.lookup_icon(HOME_DIRS_ICONS_SYMBOLIC[i], [HOME_DIRS_ICONS[i],HOME_DIRS_ICONS_ALT[i]], PANEL_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_SYMBOLIC)
             hi = Gtk.Image.new_from_paintable(hip)
             hi.set_pixel_size(PANEL_ICON_SIZE)
             _box.append(hi)
@@ -2564,7 +2572,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._lb1.append(_box)
         # the trashcan
         _boxt = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,spacing=0)
-        hipt = icon_theme.lookup_icon("trashcan_empty", ["trash_empty"], PANEL_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_SYMBOLIC)
+        hipt = icon_theme.lookup_icon("user-trash-symbolic", ["user-trash","trash-empty","trashcan_empty"], PANEL_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_SYMBOLIC)
         hit = Gtk.Image.new_from_paintable(hipt)
         hit.set_pixel_size(PANEL_ICON_SIZE)
         _boxt.append(hit)
@@ -2734,6 +2742,8 @@ class MainWindow(Adw.ApplicationWindow):
             # if i == 20:
                 # break
             if _fc._device == target_device:
+                _fc.lbl.add_css_class("mydeviceclass")
+                _mount._lbl = _fc.lbl
                 _fc.lbl.mount_path = mount_path
                 _fc._mount = _mount
                 # set the icon
@@ -2750,6 +2760,8 @@ class MainWindow(Adw.ApplicationWindow):
     # _mount is gio.mount
     # the device has been unmounted
     def on_mount_removed(self, _vm, _mount):
+        if hasattr(_mount, "_lbl"):
+            _mount._lbl.remove_css_class("mydeviceclass")
         for _m in self.STARTING_MOUNTS_LIST[:]:
             if _m[3] == _mount:
                 self.STARTING_MOUNTS_LIST.remove(_m)
@@ -2828,11 +2840,11 @@ class MainWindow(Adw.ApplicationWindow):
             _fc = self.volume_box.get_first_child()
             if _fc == None:
                 return
-            i = 0
+            # i = 0
             while _fc != None:
-                i += 1
-                if i == 20:
-                    break
+                # i += 1
+                # if i == 20:
+                    # break
                 if _fc._device == parent_device:
                     self.volume_box.remove(_fc)
                     break
@@ -2841,18 +2853,21 @@ class MainWindow(Adw.ApplicationWindow):
         if 1:
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
             box.set_hexpand(True)
-            box.add_css_class("navigation-sidebar")
             self.volume_box.append(box)
+            # the device given name or the dev entry
             m_name = device_name or os.path.basename(target_device) # _mount.get_name()
+            # the starting icon
             m_icon = icon_theme.lookup_icon("drive", ["drive-harddisk"], PANEL_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_SYMBOLIC)
             m_icn = Gtk.Image.new_from_paintable(m_icon)
             box.append(m_icn)
-            ## label button
+            ## label button - the device name
             m_lbl = Gtk.Button.new()
             mount_path = None
             m_lbl.connect("clicked", self.on_mount_mount, target_device, mount_path)
             m_lbl2 = Gtk.Label(label=m_name)
             m_lbl2.set_hexpand(True)
+            m_lbl2.set_name("mydevicebox")
+            m_lbl2.add_css_class("mydeviceclass")
             m_lbl.set_child(m_lbl2)
             m_lbl.add_css_class("flat")
             m_lbl.set_hexpand(True)
@@ -2880,6 +2895,7 @@ class MainWindow(Adw.ApplicationWindow):
                     mount_point = _mount[0]
                     can_eject = _mount[2]
                     box._mount = _mount[3]
+                    box._mount._lbl = m_lbl2 # highlight the label if the device is mounted
                     # set the icon
                     _m_icon = _mount[3].get_icon()
                     box.icon.set_from_gicon(_m_icon)
@@ -2894,6 +2910,7 @@ class MainWindow(Adw.ApplicationWindow):
                 btn_mount.set_tooltip_text(_lang.MMOUNT)
             #
             btn_mount.set_child(p_icn_mount)
+            # if box._mount.can_unmount():
             box.append(btn_mount)
             btn_mount.connect("clicked", self.on_udisk_mount_device, box)
             ## eject button
@@ -3105,6 +3122,7 @@ class MainWindow(Adw.ApplicationWindow):
         if selected_row == None:
             return
         _child = selected_row.get_child()
+        current_page_path = self._notebook.get_nth_page(self._notebook.get_current_page())._path
         ##### add the tab
         _path = _child.name
         # the recycle bin
@@ -3113,6 +3131,8 @@ class MainWindow(Adw.ApplicationWindow):
             for _t in range(_n_pages):
                 _page = self._notebook.get_nth_page(_t)
                 if _page._path == _path:
+                    if current_page_path != _page._path:
+                        self._notebook.set_current_page(_t)
                     return
             swt = ScrolWinTrash(self)
             idx = self._notebook.append_page(swt, swt.tab_label)
@@ -3206,6 +3226,9 @@ class MainWindow(Adw.ApplicationWindow):
                 folder_found = _name
                 break
         if folder_found == 0:
+            if page._path == "//TRASHCAN":
+                folder_found = page._path
+        if folder_found == 0:
             self._lb1.unselect_all()
         else:
             row = self._lb1.get_first_child()
@@ -3218,6 +3241,10 @@ class MainWindow(Adw.ApplicationWindow):
                     break
     
     def on_notebook_tab_changed(self, notebook, page, page_num):
+        if page._path == "//TRASHCAN":
+            self.set_title(_lang.TRASHCAN)
+        else:
+            self.set_title(page._path)
         self.select_lateral_folder(page)
         #
         self.path_bar.set_path(page._path, 1)
@@ -3550,6 +3577,7 @@ class PathBar(Gtk.ScrolledWindow):
             self.on_path_changed_callback(target_path)
             #
             page = self._parent._notebook.get_nth_page(self._parent._notebook.get_current_page())
+            self._parent.set_title(page._path)
             self._parent.select_lateral_folder(page)
     
     def connect_path_changed(self, callback):
@@ -3910,6 +3938,7 @@ class ScrolWin(Gtk.ScrolledWindow):
                         if os.access(new_path, os.R_OK) and os.access(new_path, os.X_OK):
                             self._parent.trigger_path_update(new_path)
                             self._path = new_path
+                            self._parent.set_title(self._path)
                             self._parent.select_lateral_folder(self)
                         else:
                             AlDial(self_main, _lang.FOLDERNOTREADABLE)
