@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# CODE: -1 do not check nothing - 0 everytime - 1 one item - 2 more than one item - 3 one or more than one item - 99 background
+# LIST_OF_MIMETYES (only check the firs item): mimetypes separated with \n OR none (do not check)
+# # FILE_TYPE (only check the firs item): @ all - D directory - F file
+if [[ "$1" == "param" ]]; then
+# send: CODE\nLIST_OF_MIMETYPE
+echo "3\nnone"
+exit
+fi
+
 string_converted=$(printf "%b" "$1")
 readarray -t file_array <<< "$string_converted"
 
