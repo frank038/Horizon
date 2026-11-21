@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.57 beta"
+VERSION = "0.9.58 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -617,6 +617,7 @@ def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_sam
         _signalc = SignalObject()
         _signalc.connect("notify::propList", signal_threadslot_c, num_items)
         _CD = CopyDialog(self_main, _signalc, _event)
+        _CD.present(self_main)
         #
         # _object = Thread(target=CopyThread, args=(path_source,_dest,_operation,_signalc,_event,_overwrite), daemon=True)
         # _object.start()
@@ -624,7 +625,7 @@ def copy_file_function2(path_source,_dest,_operation,_event,_signal,_object,_sam
         _object = GLib.Thread.new(None, CopyThread2, (path_source,_dest,_operation,_signalc,_event,_overwrite))
         #######
         #
-        _CD.present(self_main)
+        # _CD.present(self_main)
         #
         return _object
 
@@ -1498,13 +1499,14 @@ class WinPopover(Gtk.PopoverMenu):
             _signald = SignalObject()
             _signald.connect("notify::propList", signal_threadslot_d, num_items)
             _CD = CopyDialog(self_main, _signald, _eventd)
+            _CD.present(self_main)
             #
             # _object = Thread(target=DeleteThread, args=(LIST_SELECTED,_signald,_eventd), daemon=True)
             # _object.start()
             #
             _object = GLib.Thread.new(None, self.DeleteThread2, (LIST_SELECTED,_signald,_eventd))
             #
-            _CD.present(self_main)
+            # _CD.present(self_main)
     
     def DeleteThread2(self, _d):
         path_source, _signal, _event = _d
