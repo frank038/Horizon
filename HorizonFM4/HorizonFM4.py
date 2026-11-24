@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.60 beta"
+VERSION = "0.9.61 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -3939,7 +3939,7 @@ class ScrolWinTrash(Gtk.ScrolledWindow):
         elif icon_theme.has_icon("window-close"):
             _btn_il = "window-close"
         btn.set_icon_name(_btn_il)
-        # btn.connect("clicked", self.on_close_this)
+        btn.connect("clicked", self.on_close_this)
         box.append(btn)
         #
         self.tab_label = box
@@ -3960,6 +3960,16 @@ class ScrolWin(Gtk.ScrolledWindow):
         if not os.path.exists(_path) or not os.access(_path, os.R_OK):
             return None
         self._path = _path
+        #
+        self.path_is_mount = 0
+        m_dir = self._path
+        while m_dir != "/":
+            is_mount = os.path.ismount(m_dir)
+            if is_mount == False:
+                m_dir = os.path.dirname(m_dir)
+            else:
+                self.path_is_mount = 1
+                break
         # self.num_items_in_path = len([_file for _file in os.listdir(self._path) if not _file.startswith('.')])
         self._parent = _parent
         self.set_hexpand(True)
@@ -4208,7 +4218,7 @@ class ScrolWin(Gtk.ScrolledWindow):
             else:
                 has_thumb = 0
             #
-            if os.path.ismount(self._path):
+            if self.path_is_mount == 1:
                 has_thumb = -1
         #### thumbnailer - sync version
         # if CAN_THUMB == 1 and has_thumb == -1:
