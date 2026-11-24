@@ -24,6 +24,5 @@ Features:
 
 Note: the icon icon_horizon.svg must be copied in /usr/share/pixmap folder.
 
-Behaviour: the thumbnails are generated and/or loaded in sync mode, that means they are all generated before the files and folders will appear.
 
 ![My image](https://github.com/frank038/Horizon/blob/main/screenshot.png)
