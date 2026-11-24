@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.59 beta"
+VERSION = "0.9.60 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -3939,7 +3939,7 @@ class ScrolWinTrash(Gtk.ScrolledWindow):
         elif icon_theme.has_icon("window-close"):
             _btn_il = "window-close"
         btn.set_icon_name(_btn_il)
-        btn.connect("clicked", self.on_close_this)
+        # btn.connect("clicked", self.on_close_this)
         box.append(btn)
         #
         self.tab_label = box
@@ -4125,7 +4125,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         self.item_to_select = None
         self.connect("realize",self.on_realized)
         #
-        # self.thumb_cancellable = Gio.Cancellable.new()
+        self.thumb_cancellable = Gio.Cancellable.new()
         self.thumbnailerN = GnomeDesktop.DesktopThumbnailFactory.new(THUMBNAIL_SIZE)
     
     def on_realized(self, _w):
@@ -4207,6 +4207,9 @@ class ScrolWin(Gtk.ScrolledWindow):
                     has_thumb = 0
             else:
                 has_thumb = 0
+            #
+            if os.path.ismount(self._path):
+                has_thumb = -1
         #### thumbnailer - sync version
         # if CAN_THUMB == 1 and has_thumb == -1:
             # has_thumb = self.generate_thumb_sync(box, _gfileinfo, _name, has_thumb)
@@ -4250,6 +4253,8 @@ class ScrolWin(Gtk.ScrolledWindow):
     def thumb_cb(self, _obj, _res, _data):
         has_thumb, _uri, _mtime, _gfileinfo, box = _data
         has_thumb = 0
+        if self.thumb_cancellable.is_cancelled():
+            return
         try:
             icon_pixbuf = _obj.generate_thumbnail_finish(_res)
             # if isinstance(icon_pixbuf, GdkPixbuf.Pixbuf):
@@ -4269,7 +4274,8 @@ class ScrolWin(Gtk.ScrolledWindow):
                     else:
                         has_thumb = 0
         except GLib.Error as E:
-            ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
+            # # useless ?
+            # ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
             has_thumb = 0
         #
         if has_thumb == 0:
@@ -4303,11 +4309,11 @@ class ScrolWin(Gtk.ScrolledWindow):
             # try to generate a thumbnail
             try:
                 mime_type = _gfileinfo.get_content_type()
-                self.thumbnailerN.generate_thumbnail_async(_uri, mime_type, None, self.thumb_cb, [has_thumb, _uri, _mtime, _gfileinfo, box])
+                self.thumbnailerN.generate_thumbnail_async(_uri, mime_type, self.thumb_cancellable, self.thumb_cb, [has_thumb, _uri, _mtime, _gfileinfo, box])
             except GLib.Error as E:
-                # should be useless
-                # generate failed thumbnailer - True or False
-                ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
+                # # should be useless
+                # # generate failed thumbnailer - True or False
+                # ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
                 has_thumb = 0
         else:
             try:
@@ -4349,8 +4355,8 @@ class ScrolWin(Gtk.ScrolledWindow):
                     _thumb_path = self.thumbnailerN.lookup(_uri, _mtime)
                     has_thumb = 1
                 except GLib.Error as E:
-                    # generate failed thumbnailer - True or False
-                    ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
+                    # # generate failed thumbnailer - True or False
+                    # ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
                     has_thumb = 0
         else:
             try:
@@ -4369,6 +4375,7 @@ class ScrolWin(Gtk.ScrolledWindow):
     def on_close_this(self, w):
         if self._parent._notebook.get_n_pages() > 1:
             idx = self._parent._notebook.get_current_page()
+            self._parent._notebook.get_nth_page(idx).thumb_cancellable.cancel()
             self._parent._notebook.remove_page(idx)
         
     def on_create_notebook_label(self):
