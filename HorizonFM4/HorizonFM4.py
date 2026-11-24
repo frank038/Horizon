@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.58 beta"
+VERSION = "0.9.59 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -10,7 +10,7 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Gdk', '4.0')
 gi.require_version('GLib', '2.0')
 gi.require_version("Adw","1")
-from gi.repository import Gtk,Gdk,Gio,GObject,Pango,GLib,Graphene,Adw
+from gi.repository import Gtk,Gdk,Gio,GObject,Pango,GLib,Graphene,Adw,GdkPixbuf
 gi.require_version('GUdev', '1.0')
 from gi.repository import GUdev
 from urllib.parse import unquote, quote
@@ -2920,7 +2920,6 @@ class MainWindow(Adw.ApplicationWindow):
             m_lbl2 = Gtk.Label(label=m_name)
             m_lbl2.set_hexpand(True)
             m_lbl2.set_name("mydevicebox")
-            m_lbl2.add_css_class("mydeviceclass")
             m_lbl.set_child(m_lbl2)
             m_lbl.add_css_class("flat")
             m_lbl.set_hexpand(True)
@@ -2959,6 +2958,7 @@ class MainWindow(Adw.ApplicationWindow):
             m_lbl2.add_controller(event_controller)
             if mount_point and os.path.exists(mount_point):
                 btn_mount.set_tooltip_text(_lang.MUMOUNT)
+                m_lbl2.add_css_class("mydeviceclass")
             else:
                 btn_mount.set_tooltip_text(_lang.MMOUNT)
             #
@@ -4124,6 +4124,9 @@ class ScrolWin(Gtk.ScrolledWindow):
         #
         self.item_to_select = None
         self.connect("realize",self.on_realized)
+        #
+        # self.thumb_cancellable = Gio.Cancellable.new()
+        self.thumbnailerN = GnomeDesktop.DesktopThumbnailFactory.new(THUMBNAIL_SIZE)
     
     def on_realized(self, _w):
         GLib.idle_add(self.on_realized_f)
@@ -4196,6 +4199,7 @@ class ScrolWin(Gtk.ScrolledWindow):
         box.lbl.set_label(_name)
         box.item_name = _name
         has_thumb = -1
+        # CAN_THUMB_EVERYWHERE = 0 means only the images in the home directory will show a thumbail
         if CAN_THUMB_EVERYWHERE == 0:
             if len(self._path) >= len(_HOME):
                 _path_only_home = self._path[0:len(_HOME)]
@@ -4203,14 +4207,18 @@ class ScrolWin(Gtk.ScrolledWindow):
                     has_thumb = 0
             else:
                 has_thumb = 0
-        # thumbnailer
+        #### thumbnailer - sync version
+        # if CAN_THUMB == 1 and has_thumb == -1:
+            # has_thumb = self.generate_thumb_sync(box, _gfileinfo, _name, has_thumb)
+        #
+        #### thumbnailer - async version
         if CAN_THUMB == 1 and has_thumb == -1:
-            has_thumb = self.generate_thumb(box, _gfileinfo, _name, has_thumb)
+            self.generate_thumb_async(box, _gfileinfo, _name)
         #
         if has_thumb == 0:
             _icon = _gfileinfo.get_icon()
             box.icon.set_from_gicon(_icon)
-        #
+        ####
         if _gfileinfo.get_is_symlink():
             # if icon_theme.has_icon("link"):
             _il = icon_theme.lookup_icon("emblem-symbolic-link", ["emblem-link", "link"], LINK_ICON_SIZE, 1, 0, Gtk.IconLookupFlags.FORCE_REGULAR)
@@ -4238,9 +4246,41 @@ class ScrolWin(Gtk.ScrolledWindow):
                     # self.grid1.scroll_to(self.NUM_MOD_ITEMS-1, Gtk.ListScrollFlags.SELECT, None)
                     self.item_to_select = self.NUM_MOD_ITEMS-1
         # self.NUM_MOD_ITEMS -= 1
-        
-    def generate_thumb(self, box, _gfileinfo, _name, has_thumb):
-        thumbnailerN = GnomeDesktop.DesktopThumbnailFactory.new(THUMBNAIL_SIZE)
+    
+    def thumb_cb(self, _obj, _res, _data):
+        has_thumb, _uri, _mtime, _gfileinfo, box = _data
+        has_thumb = 0
+        try:
+            icon_pixbuf = _obj.generate_thumbnail_finish(_res)
+            # if isinstance(icon_pixbuf, GdkPixbuf.Pixbuf):
+            if icon_pixbuf != None:
+                # True or False
+                ret = self.thumbnailerN.save_thumbnail(icon_pixbuf, _uri, _mtime, None)
+                if ret:
+                    _thumb_path = self.thumbnailerN.lookup(_uri, _mtime)
+                    box.icon.set_from_file(_thumb_path)
+                    has_thumb = 1
+                else:
+                    # load the pixbuf directly
+                    _texture_img = Gdk.Texture.new_for_pixbuf(icon_pixbuf)
+                    if isinstance(_texture_img, Gdk.Texture):
+                        box.icon.set_from_paintable(_texture_img)
+                        has_thumb = -1
+                    else:
+                        has_thumb = 0
+        except GLib.Error as E:
+            ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
+            has_thumb = 0
+        #
+        if has_thumb == 0:
+            try:
+                _icon = _gfileinfo.get_icon()
+                box.icon.set_from_gicon(_icon)
+            except:
+                pass
+    
+    def generate_thumb_async(self, box, _gfileinfo, _name):
+        has_thumb = 0
         tf = Gio.File.new_for_path(os.path.join(self._path, _name))
         _uri = tf.get_uri()
         _mtime_tmp = _gfileinfo.get_modification_date_time().to_local()
@@ -4248,25 +4288,69 @@ class ScrolWin(Gtk.ScrolledWindow):
             return
         _mtime = _mtime_tmp.to_local().to_unix()
         # can be None or str
-        _thumb_path = thumbnailerN.lookup(_uri, _mtime)
+        _thumb_path = self.thumbnailerN.lookup(_uri, _mtime)
+        # no previous thumbnail
+        if _thumb_path == None:
+            # # can be False or True
+            # _thumb_path_failed = self.thumbnailerN.has_valid_failed_thumbnail(_uri, _mtime)
+            # # no valid thumbnail - use the icon from the current theme
+            # if _thumb_path_failed == True:
+                # _icon = _gfileinfo.get_icon()
+                # box.icon.set_from_gicon(_icon)
+                # has_thumb = 0
+            # has a valid thumbnail
+            # else:
+            # try to generate a thumbnail
+            try:
+                mime_type = _gfileinfo.get_content_type()
+                self.thumbnailerN.generate_thumbnail_async(_uri, mime_type, None, self.thumb_cb, [has_thumb, _uri, _mtime, _gfileinfo, box])
+            except GLib.Error as E:
+                # should be useless
+                # generate failed thumbnailer - True or False
+                ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
+                has_thumb = 0
+        else:
+            try:
+                box.icon.set_from_file(_thumb_path)
+                has_thumb = 1
+            except:
+                has_thumb = 0
+        #
+        if has_thumb == 0:
+            try:
+                _icon = _gfileinfo.get_icon()
+                box.icon.set_from_gicon(_icon)
+                has_thumb = -1
+            except:
+                has_thumb = -1
+    
+    def generate_thumb_sync(self, box, _gfileinfo, _name, has_thumb):
+        tf = Gio.File.new_for_path(os.path.join(self._path, _name))
+        _uri = tf.get_uri()
+        _mtime_tmp = _gfileinfo.get_modification_date_time().to_local()
+        if _mtime_tmp == None:
+            return
+        _mtime = _mtime_tmp.to_local().to_unix()
+        # can be None or str
+        _thumb_path = self.thumbnailerN.lookup(_uri, _mtime)
         #
         if _thumb_path == None:
             # can be False or True
-            _thumb_path_failed = thumbnailerN.has_valid_failed_thumbnail(_uri, _mtime)
+            _thumb_path_failed = self.thumbnailerN.has_valid_failed_thumbnail(_uri, _mtime)
             if _thumb_path_failed == True:
                 has_thumb = 0
             else:
                 #
                 try:
                     mime_type = _gfileinfo.get_content_type()
-                    icon_pixbuf = thumbnailerN.generate_thumbnail(_uri, mime_type, None)
+                    icon_pixbuf = self.thumbnailerN.generate_thumbnail(_uri, mime_type, None)
                     # True or False
-                    ret = thumbnailerN.save_thumbnail(icon_pixbuf, _uri, _mtime, None)
-                    _thumb_path = thumbnailerN.lookup(_uri, _mtime)
+                    ret = self.thumbnailerN.save_thumbnail(icon_pixbuf, _uri, _mtime, None)
+                    _thumb_path = self.thumbnailerN.lookup(_uri, _mtime)
                     has_thumb = 1
                 except GLib.Error as E:
                     # generate failed thumbnailer - True or False
-                    ret = thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
+                    ret = self.thumbnailerN.create_failed_thumbnail(_uri, _mtime, None)
                     has_thumb = 0
         else:
             try:
@@ -4729,6 +4813,9 @@ class TrashModule():
             return
         
     def Tcan_trash(self, list_items):
+        GLib.Thread.new(None, self.Tcan_trash2, list_items)
+        
+    def Tcan_trash2(self, list_items):
         for item_path in list_items:
             item = os.path.basename(item_path)
             tnow = datetime.datetime.now()
