@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.61 beta"
+VERSION = "0.9.62 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -1472,7 +1472,8 @@ class WinPopover(Gtk.PopoverMenu):
                 f_info = model.get_item(i)
                 f_name = f_info.get_name()
                 ff = os.path.join(self._parent._path, f_name)
-                LIST_SELECTED.append(ff)
+                if os.path.exists(ff):
+                    LIST_SELECTED.append(ff)
         if len(LIST_SELECTED) > 0:
             num_items = len(LIST_SELECTED)
             _eventd = Event()
@@ -4184,10 +4185,13 @@ class ScrolWin(Gtk.ScrolledWindow):
         if can_trash:
             ITEMS_TO_TRASH = []
             for el in self.SELECTED_ITEMS:
-                ITEMS_TO_TRASH.append(os.path.join(self._path, el))
+                file_to_trash_path = os.path.join(self._path, el)
+                if os.path.exists(file_to_trash_path):
+                    ITEMS_TO_TRASH.append(file_to_trash_path)
             # not to let scroll to top
             self.grab_focus()
-            TrashModule(ITEMS_TO_TRASH)
+            if ITEMS_TO_TRASH:
+                TrashModule(ITEMS_TO_TRASH)
     
     def f_setup(self, fact, item):
         box = ItemBox(self, item)
