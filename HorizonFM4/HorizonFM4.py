@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.62 beta"
+VERSION = "0.9.63 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -2482,7 +2482,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.root_btn.set_tooltip_text(_lang.ROOTTAB)
         self.root_btn.connect("clicked", self.on_root_tab)
         self.headerbar.pack_end(self.root_btn)
-        if icon_theme.has_icon("drive-harddisk"):
+        if icon_theme.has_icon("drive-harddisk-symbolic"):
+            self.root_btn.set_icon_name("drive-harddisk-symbolic")
+        elif icon_theme.has_icon("drive-harddisk"):
             self.root_btn.set_icon_name("drive-harddisk")
         elif icon_theme.has_icon("gnome-dev-harddisk"):
             self.root_btn.set_icon_name("gnome-dev-harddisk")
@@ -2591,9 +2593,9 @@ class MainWindow(Adw.ApplicationWindow):
         for el in USER_HOME_DIRS:
             HOME_DIRS.append(os.path.basename(GLib.get_user_special_dir(el)))
         # HOME_DIRS_ICONS = ["folder-desktop", "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
-        HOME_DIRS_ICONS_SYMBOLIC = ["user-desktop-symbolic",  "folder-documents-symbolic", "folder-pictures-symbolic", "folder-music-symbolic", "folder-videos-symbolic", "folder-publicshare-symbolic", "folder-downloads-symbolic"]
-        HOME_DIRS_ICONS = ["user-desktop",  "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
-        HOME_DIRS_ICONS_ALT = ["folder-desktop", "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-downloads"]
+        HOME_DIRS_ICONS_SYMBOLIC = ["user-desktop-symbolic",  "folder-documents-symbolic", "folder-pictures-symbolic", "folder-music-symbolic", "folder-videos-symbolic", "folder-publicshare-symbolic", "folder-download-symbolic"]
+        HOME_DIRS_ICONS = ["user-desktop",  "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-download"]
+        HOME_DIRS_ICONS_ALT = ["folder-desktop", "folder-documents", "folder-pictures", "folder-music", "folder-videos", "folder-publicshare", "folder-download"]
         #
         self.exp1 = Gtk.Expander.new(label=" ")
         self.exp1_lbl = self.exp1.get_label_widget()
