@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-VERSION = "0.9.63 beta"
+VERSION = "0.9.64 beta"
 FMNAME = "Horizon"
 FMSITE = "https://github.com/frank038/Horizon"
 
@@ -1602,6 +1602,7 @@ class PropertyDialog(Adw.Dialog):
         #
         self.headerbar = Gtk.HeaderBar.new()
         self.headerbar.set_show_title_buttons(False)
+        self.headerbar.set_title_widget(Gtk.Label(label=""))
         #
         self.apply_btn = Gtk.Button(label=_lang.APPLY)
         self.apply_btn.set_css_classes(["suggested-action",""])
@@ -4914,6 +4915,9 @@ class WinSettings(Adw.Dialog):
         # 
         self.headerbar = Gtk.HeaderBar.new()
         self.headerbar.set_show_title_buttons(False)
+        headerbar_lbl = Gtk.Label(label="<b>"+_lang.SETTINGS+"</b>")
+        headerbar_lbl.set_use_markup(True)
+        self.headerbar.set_title_widget(headerbar_lbl)
         #
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.main_box.set_margin_start(6)
